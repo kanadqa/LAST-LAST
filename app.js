@@ -374,6 +374,8 @@ const DB_STORE = "kv";
 const Storage = (() => {
   let dbInstance = null;
   let useLocalStorage = false;
+  let useMemoryStore = false;
+  const memoryStore = new Map();
 
   const dbOpen = () => new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
@@ -404,8 +406,17 @@ const Storage = (() => {
   };
 
   const get = async (key) => {
+    if (useMemoryStore) {
+      return memoryStore.get(key) ?? null;
+    }
     if (useLocalStorage) {
-      return localStorage.getItem(key);
+      try {
+        return localStorage.getItem(key);
+      } catch (error) {
+        console.warn("localStorage недоступен, используем память.", error);
+        useMemoryStore = true;
+        return memoryStore.get(key) ?? null;
+      }
     }
     const db = dbInstance || await dbOpen();
     return new Promise((resolve, reject) => {
@@ -418,9 +429,20 @@ const Storage = (() => {
   };
 
   const set = async (key, value) => {
-    if (useLocalStorage) {
-      localStorage.setItem(key, value);
+    if (useMemoryStore) {
+      memoryStore.set(key, value);
       return;
+    }
+    if (useLocalStorage) {
+      try {
+        localStorage.setItem(key, value);
+        return;
+      } catch (error) {
+        console.warn("localStorage недоступен, используем память.", error);
+        useMemoryStore = true;
+        memoryStore.set(key, value);
+        return;
+      }
     }
     const db = dbInstance || await dbOpen();
     return new Promise((resolve, reject) => {
