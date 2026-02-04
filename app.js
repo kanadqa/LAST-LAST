@@ -185,12 +185,106 @@ const expenseSubcategoryPieSummary = document.getElementById("expenseSubcategory
 const incomePieSummary = document.getElementById("incomePieSummary");
 
 const appUtils = window.AppUtils || {};
-const {
-  colorForLabel,
-  formatMoney,
-  normalizeTransactionCurrency,
-  parseCsv,
-} = appUtils;
+let colorForLabel = appUtils.colorForLabel;
+let formatMoney = appUtils.formatMoney;
+let normalizeTransactionCurrency = appUtils.normalizeTransactionCurrency;
+let parseCsv = appUtils.parseCsv;
+
+if (!normalizeTransactionCurrency) {
+  normalizeTransactionCurrency = (value, fallback = "RUB") => {
+    if (typeof value !== "string") {
+      return fallback;
+    }
+    const normalized = value.trim().toUpperCase();
+    return normalized || fallback;
+  };
+}
+
+if (!formatMoney) {
+  const currencyFormatters = new Map();
+  formatMoney = (amount, currency = "RUB") => {
+    const normalized = normalizeTransactionCurrency(currency, "RUB");
+    if (!currencyFormatters.has(normalized)) {
+      currencyFormatters.set(normalized, new Intl.NumberFormat("ru-RU", {
+        style: "currency",
+        currency: normalized,
+        minimumFractionDigits: 2,
+      }));
+    }
+    return currencyFormatters.get(normalized).format(amount);
+  };
+}
+
+if (!colorForLabel) {
+  const palette = [
+    "#2563eb",
+    "#16a34a",
+    "#ea580c",
+    "#7c3aed",
+    "#0f766e",
+    "#db2777",
+    "#ca8a04",
+    "#dc2626",
+    "#0891b2",
+    "#4f46e5",
+  ];
+  colorForLabel = (label) => {
+    const text = String(label);
+    let hash = 0;
+    for (let i = 0; i < text.length; i += 1) {
+      hash = (hash * 31 + text.charCodeAt(i)) % palette.length;
+    }
+    return palette[Math.abs(hash) % palette.length];
+  };
+}
+
+if (!parseCsv) {
+  parseCsv = (text) => {
+    const cleaned = text.replace(/^\uFEFF/, "");
+    const rows = [];
+    let current = [];
+    let value = "";
+    let inQuotes = false;
+    const pushValue = () => {
+      current.push(value);
+      value = "";
+    };
+    for (let i = 0; i < cleaned.length; i += 1) {
+      const char = cleaned[i];
+      const next = cleaned[i + 1];
+      if (char === "\"") {
+        if (inQuotes && next === "\"") {
+          value += "\"";
+          i += 1;
+        } else {
+          inQuotes = !inQuotes;
+        }
+        continue;
+      }
+      if (!inQuotes && char === ",") {
+        pushValue();
+        continue;
+      }
+      if (!inQuotes && (char === "\n" || char === "\r")) {
+        if (char === "\r" && next === "\n") {
+          i += 1;
+        }
+        pushValue();
+        if (current.length > 1 || current[0] !== "") {
+          rows.push(current);
+        }
+        current = [];
+        continue;
+      }
+      value += char;
+    }
+    if (value.length || current.length) {
+      pushValue();
+      rows.push(current);
+    }
+    return rows;
+  };
+}
 
 const STORAGE_KEY = "budget.transactions.v2";
 const CATEGORY_KEY = "budget.categories.v3";
@@ -4920,9 +5014,8 @@ const initializeApp = safeExec(async () => {
   await Storage.init();
   await loadState();
 
-  if (!colorForLabel || !formatMoney || !normalizeTransactionCurrency || !parseCsv) {
-    showError("Не удалось загрузить вспомогательные функции. Проверьте, что utils.js доступен.");
-    return;
+  if (!appUtils.colorForLabel || !appUtils.formatMoney || !appUtils.normalizeTransactionCurrency || !appUtils.parseCsv) {
+    showError("Не удалось загрузить utils.js, использованы встроенные функции. Проверьте путь к файлу.");
   }
 
   bindEvents();
