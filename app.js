@@ -1,5 +1,3 @@
-import { colorForLabel, formatMoney, normalizeTransactionCurrency, parseCsv } from "./utils.js";
-
 const form = document.getElementById("transactionForm");
 const tableBody = document.getElementById("transactionTable");
 const totalIncomeEl = document.getElementById("totalIncome");
@@ -185,6 +183,14 @@ const expenseSubcategorySummary = document.getElementById("expenseSubcategorySum
 const expensePieSummary = document.getElementById("expensePieSummary");
 const expenseSubcategoryPieSummary = document.getElementById("expenseSubcategoryPieSummary");
 const incomePieSummary = document.getElementById("incomePieSummary");
+
+const appUtils = window.AppUtils || {};
+const {
+  colorForLabel,
+  formatMoney,
+  normalizeTransactionCurrency,
+  parseCsv,
+} = appUtils;
 
 const STORAGE_KEY = "budget.transactions.v2";
 const CATEGORY_KEY = "budget.categories.v3";
@@ -4896,6 +4902,11 @@ const loadState = async () => {
 const initializeApp = safeExec(async () => {
   await Storage.init();
   await loadState();
+
+  if (!colorForLabel || !formatMoney || !normalizeTransactionCurrency || !parseCsv) {
+    showError("Не удалось загрузить вспомогательные функции. Проверьте, что utils.js доступен.");
+    return;
+  }
 
   bindEvents();
   renderCategories();

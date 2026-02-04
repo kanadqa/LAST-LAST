@@ -88,7 +88,7 @@ const parseCsv = (text) => {
   return rows;
 };
 
-export {
+window.AppUtils = {
   colorForLabel,
   formatMoney,
   normalizeTransactionCurrency,
