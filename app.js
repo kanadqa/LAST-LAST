@@ -279,6 +279,7 @@ const DB_STORE = "kv";
 
 const Storage = (() => {
   let dbInstance = null;
+  let useLocalStorage = false;
 
   const dbOpen = () => new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
@@ -293,13 +294,25 @@ const Storage = (() => {
   });
 
   const init = async () => {
+    if (useLocalStorage) {
+      return null;
+    }
     if (!dbInstance) {
-      dbInstance = await dbOpen();
+      try {
+        dbInstance = await dbOpen();
+      } catch (error) {
+        console.warn("IndexedDB недоступен, используем localStorage.", error);
+        useLocalStorage = true;
+        dbInstance = null;
+      }
     }
     return dbInstance;
   };
 
   const get = async (key) => {
+    if (useLocalStorage) {
+      return localStorage.getItem(key);
+    }
     const db = dbInstance || await dbOpen();
     return new Promise((resolve, reject) => {
       const tx = db.transaction(DB_STORE, "readonly");
@@ -311,6 +324,10 @@ const Storage = (() => {
   };
 
   const set = async (key, value) => {
+    if (useLocalStorage) {
+      localStorage.setItem(key, value);
+      return;
+    }
     const db = dbInstance || await dbOpen();
     return new Promise((resolve, reject) => {
       const tx = db.transaction(DB_STORE, "readwrite");
