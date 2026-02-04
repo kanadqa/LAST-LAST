@@ -1,3 +1,5 @@
+import { colorForLabel, formatMoney, normalizeTransactionCurrency, parseCsv } from "./utils.js";
+
 const form = document.getElementById("transactionForm");
 const tableBody = document.getElementById("transactionTable");
 const totalIncomeEl = document.getElementById("totalIncome");
@@ -5,11 +7,14 @@ const totalExpenseEl = document.getElementById("totalExpense");
 const balanceEl = document.getElementById("balance");
 const expensePercentEl = document.getElementById("expensePercent");
 const exportButton = document.getElementById("exportCsv");
+const importCsvInput = document.getElementById("importCsv");
 const clearButton = document.getElementById("clearAll");
 const undoButton = document.getElementById("undoAction");
 const backupButton = document.getElementById("backupJson");
 const restoreInput = document.getElementById("restoreJson");
+const backupMeta = document.getElementById("backupMeta");
 const errorBanner = document.getElementById("errorBanner");
+const summaryCurrencyNote = document.getElementById("summaryCurrencyNote");
 const categorySelect = document.getElementById("category");
 const subcategorySelect = document.getElementById("subcategory");
 const categoryTypeSelect = document.getElementById("categoryType");
@@ -17,6 +22,7 @@ const categoryList = document.getElementById("categoryList");
 const addCategoryButton = document.getElementById("addCategory");
 const newCategoryInput = document.getElementById("newCategory");
 const newSubcategoryInput = document.getElementById("newSubcategory");
+const transactionCurrencySelect = document.getElementById("currency");
 const categoryScopeButtons = document.querySelectorAll("[data-category-scope]");
 const categoryPanels = document.querySelectorAll("[data-category-panel]");
 const expenseCategoryChart = document.getElementById("expenseCategoryChart");
@@ -44,9 +50,16 @@ const reportIncomeEl = document.getElementById("reportIncome");
 const reportExpenseEl = document.getElementById("reportExpense");
 const reportBalanceEl = document.getElementById("reportBalance");
 const reportTransactionsCountEl = document.getElementById("reportTransactionsCount");
+const reportComparison = document.getElementById("reportComparison");
+const reportComparisonDetail = document.getElementById("reportComparisonDetail");
+const reportCurrencyNote = document.getElementById("reportCurrencyNote");
 const reportExpenseCategories = document.getElementById("reportExpenseCategories");
 const reportExpenseSubcategories = document.getElementById("reportExpenseSubcategories");
 const reportIncomeSubcategories = document.getElementById("reportIncomeSubcategories");
+const reportLineSummary = document.getElementById("reportLineSummary");
+const reportExpenseCategoriesSummary = document.getElementById("reportExpenseCategoriesSummary");
+const reportExpenseSubcategoriesSummary = document.getElementById("reportExpenseSubcategoriesSummary");
+const reportIncomeSubcategoriesSummary = document.getElementById("reportIncomeSubcategoriesSummary");
 const capitalTabs = document.querySelectorAll("[data-capital-tab]");
 const capitalPanels = document.querySelectorAll("[data-capital-tab-panel]");
 const capitalAssetsTotal = document.getElementById("capitalAssetsTotal");
@@ -147,24 +160,76 @@ const capitalGoalsTable = document.getElementById("capitalGoalsTable");
 const capitalSnapshotNow = document.getElementById("capitalSnapshotNow");
 const capitalSnapshotsChart = document.getElementById("capitalSnapshotsChart");
 const capitalSnapshotsTable = document.getElementById("capitalSnapshotsTable");
+const sidebarToggle = document.getElementById("sidebarToggle");
+const sidebarClose = document.getElementById("sidebarClose");
+const sidebarOverlay = document.getElementById("sidebarOverlay");
+const transactionSearch = document.getElementById("transactionSearch");
+const transactionTypeFilter = document.getElementById("transactionTypeFilter");
+const transactionCategoryFilter = document.getElementById("transactionCategoryFilter");
+const transactionDateStart = document.getElementById("transactionDateStart");
+const transactionDateEnd = document.getElementById("transactionDateEnd");
+const transactionSort = document.getElementById("transactionSort");
+const transactionSortDir = document.getElementById("transactionSortDir");
+const transactionPrev = document.getElementById("transactionPrev");
+const transactionNext = document.getElementById("transactionNext");
+const transactionPageInfo = document.getElementById("transactionPageInfo");
+const transactionPageSize = document.getElementById("transactionPageSize");
+const transactionReset = document.getElementById("transactionReset");
+const transactionFilterChips = document.getElementById("transactionFilterChips");
+const transactionCount = document.getElementById("transactionCount");
+const amountCurrencyHint = document.getElementById("amountCurrencyHint");
+const dateQuickButtons = document.querySelectorAll("[data-date-quick]");
+const incomeSubcategorySummary = document.getElementById("incomeSubcategorySummary");
+const expenseCategorySummary = document.getElementById("expenseCategorySummary");
+const expenseSubcategorySummary = document.getElementById("expenseSubcategorySummary");
+const expensePieSummary = document.getElementById("expensePieSummary");
+const expenseSubcategoryPieSummary = document.getElementById("expenseSubcategoryPieSummary");
+const incomePieSummary = document.getElementById("incomePieSummary");
 
 const STORAGE_KEY = "budget.transactions.v2";
 const CATEGORY_KEY = "budget.categories.v3";
 const VIEW_KEY = "budget.view.active";
 const LAYOUT_KEY = "budget.layout";
 const CHART_LIMIT = 6;
+const BACKUP_META_KEY = "budget.backup.meta";
 const CAPITAL_KEY_V2 = "budget.capital.v2";
 const CAPITAL_KEY_V1 = "budget.capital.v1";
 const CAPITAL_MIGRATED_KEY = "budget.capital.migrated";
 const CAPITAL_ASSETS_UI_KEY = "budget.capital.assets.uiState";
 
-const showError = (message) => {
-  if (!errorBanner) {
-    alert(message);
+const showToast = (message, type = "info") => {
+  if (!toast) {
     return;
   }
-  errorBanner.textContent = message;
-  errorBanner.classList.remove("is-hidden");
+  toast.textContent = message;
+  toast.classList.remove("is-hidden", "is-success", "is-info", "is-error");
+  toast.classList.add(`is-${type}`);
+  clearTimeout(showToast._timer);
+  showToast._timer = setTimeout(() => {
+    toast.classList.add("is-hidden");
+  }, 2200);
+};
+
+const showNotice = (message, type = "info") => {
+  if (type === "error") {
+    if (errorBanner) {
+      errorBanner.textContent = message;
+      errorBanner.classList.remove("is-hidden");
+    } else {
+      alert(message);
+    }
+    showToast(message, "error");
+    return;
+  }
+  if (errorBanner) {
+    errorBanner.classList.add("is-hidden");
+    errorBanner.textContent = "";
+  }
+  showToast(message, type);
+};
+
+const showError = (message) => {
+  showNotice(message, "error");
 };
 
 const clearError = () => {
@@ -199,19 +264,6 @@ const currencyFormatter = new Intl.NumberFormat("ru-RU", {
   currency: "RUB",
   minimumFractionDigits: 2,
 });
-
-const palette = [
-  "#2563eb",
-  "#16a34a",
-  "#ea580c",
-  "#7c3aed",
-  "#0f766e",
-  "#db2777",
-  "#ca8a04",
-  "#dc2626",
-  "#0891b2",
-  "#4f46e5",
-];
 
 const formatType = (type) => (type === "income" ? "Доход" : "Расход");
 
@@ -281,6 +333,7 @@ const normalizeTransaction = (item) => {
     category: item.category || "",
     subcategory: item.subcategory || "",
     amount: Number.isFinite(amount) ? amount : 0,
+    currency: normalizeTransactionCurrency(item.currency, "RUB"),
     note: item.note || "",
     createdAt,
     updatedAt,
@@ -291,7 +344,7 @@ const normalizeTransactions = (items) => {
   let migrated = false;
   const normalized = (Array.isArray(items) ? items : []).map((item) => {
     const next = normalizeTransaction(item || {});
-    if (!item?.id || !item?.createdAt || !item?.updatedAt || !Number.isFinite(item?.amount)) {
+    if (!item?.id || !item?.createdAt || !item?.updatedAt || !Number.isFinite(item?.amount) || !item?.currency) {
       migrated = true;
     }
     return next;
@@ -475,6 +528,7 @@ const downloadJson = (payload, filename) => {
   URL.revokeObjectURL(url);
 };
 
+
 const buildBackupPayload = () => ({
   version: 1,
   createdAt: new Date().toISOString(),
@@ -488,6 +542,29 @@ const buildBackupPayload = () => ({
     fxRates: capitalState?.settings?.fxRates,
   },
 });
+
+const renderBackupMeta = (meta) => {
+  if (!backupMeta) {
+    return;
+  }
+  if (!meta) {
+    backupMeta.textContent = "Последний backup: —";
+    return;
+  }
+  const date = new Date(meta.createdAt);
+  const sizeKb = meta.sizeKb ? `${meta.sizeKb} КБ` : "—";
+  backupMeta.textContent = `Последний backup: ${date.toLocaleString("ru-RU")} · ${sizeKb} · операций: ${meta.transactions || 0}`;
+};
+
+const saveBackupMeta = async (payload) => {
+  const meta = {
+    createdAt: payload.createdAt,
+    transactions: payload.transactions?.length || 0,
+    sizeKb: Math.round(JSON.stringify(payload).length / 1024),
+  };
+  await Storage.set(BACKUP_META_KEY, JSON.stringify(meta));
+  renderBackupMeta(meta);
+};
 
 const applyBackupPayload = async (payload) => {
   if (!payload || typeof payload !== "object") {
@@ -530,6 +607,17 @@ let capitalOverviewFilter = "all";
 let capitalEditingAssetId = null;
 let activeView = "dashboard";
 let currentLayout = "comfort";
+const transactionFilters = {
+  search: "",
+  type: "all",
+  category: "all",
+  dateStart: "",
+  dateEnd: "",
+  sort: "date",
+  direction: "desc",
+  page: 1,
+  pageSize: 10,
+};
 const assetFilters = {
   search: "",
   type: "all",
@@ -552,6 +640,21 @@ const normalizeCurrency = (value, fallback = "RUB") => {
   }
   const trimmed = value.trim().toUpperCase();
   return trimmed || fallback;
+};
+
+const getBaseCurrency = () => capitalState?.settings?.baseCurrency || "RUB";
+
+const transactionToBase = (transaction) => {
+  const base = getBaseCurrency();
+  const currency = normalizeTransactionCurrency(transaction.currency, base);
+  if (currency === base) {
+    return { amount: transaction.amount, converted: true };
+  }
+  const rate = capitalState?.settings?.fxRates?.[currency];
+  if (!rate) {
+    return { amount: null, converted: false };
+  }
+  return { amount: transaction.amount * rate, converted: true };
 };
 
 const sanitizeNumber = (value, fallback = 0) => {
@@ -716,23 +819,122 @@ const updateUndoState = () => {
 };
 
 const updateSummary = () => {
+  const baseCurrency = getBaseCurrency();
+  const missingCurrencies = new Set();
   const totals = transactions.reduce(
     (acc, item) => {
+      const { amount, converted } = transactionToBase(item);
+      if (!converted) {
+        missingCurrencies.add(item.currency);
+        return acc;
+      }
       if (item.type === "income") {
-        acc.income += item.amount;
+        acc.income += amount;
       } else {
-        acc.expense += item.amount;
+        acc.expense += amount;
       }
       return acc;
     },
     { income: 0, expense: 0 }
   );
 
-  totalIncomeEl.textContent = currencyFormatter.format(totals.income);
-  totalExpenseEl.textContent = currencyFormatter.format(totals.expense);
-  balanceEl.textContent = currencyFormatter.format(totals.income - totals.expense);
+  totalIncomeEl.textContent = formatMoney(totals.income, baseCurrency);
+  totalExpenseEl.textContent = formatMoney(totals.expense, baseCurrency);
+  balanceEl.textContent = formatMoney(totals.income - totals.expense, baseCurrency);
   const percent = totals.income > 0 ? (totals.expense / totals.income) * 100 : 0;
   expensePercentEl.textContent = `${percent.toFixed(1)}% от доходов`;
+  if (summaryCurrencyNote) {
+    const missingText = missingCurrencies.size
+      ? ` Не учтены операции без курса: ${[...missingCurrencies].join(", ")}.`
+      : "";
+    summaryCurrencyNote.textContent = `Показано в ${baseCurrency}.${missingText}`;
+  }
+};
+
+const getFilteredTransactions = () => {
+  const searchValue = transactionFilters.search.toLowerCase();
+  return transactions.filter((item) => {
+    if (transactionFilters.type !== "all" && item.type !== transactionFilters.type) {
+      return false;
+    }
+    if (transactionFilters.category !== "all" && item.category !== transactionFilters.category) {
+      return false;
+    }
+    if (transactionFilters.dateStart && item.date < transactionFilters.dateStart) {
+      return false;
+    }
+    if (transactionFilters.dateEnd && item.date > transactionFilters.dateEnd) {
+      return false;
+    }
+    if (searchValue) {
+      const haystack = `${item.category} ${item.subcategory} ${item.note}`.toLowerCase();
+      if (!haystack.includes(searchValue)) {
+        return false;
+      }
+    }
+    return true;
+  });
+};
+
+const sortTransactions = (items) => {
+  const sorted = items.slice();
+  const direction = transactionFilters.direction === "asc" ? 1 : -1;
+  if (transactionFilters.sort === "amount") {
+    sorted.sort((a, b) => (a.amount - b.amount) * direction);
+  } else {
+    sorted.sort((a, b) => (new Date(a.date) - new Date(b.date)) * direction);
+  }
+  return sorted;
+};
+
+const paginateTransactions = (items) => {
+  const start = (transactionFilters.page - 1) * transactionFilters.pageSize;
+  return items.slice(start, start + transactionFilters.pageSize);
+};
+
+const updateTransactionPageInfo = (totalItems) => {
+  if (!transactionPageInfo || !transactionPrev || !transactionNext) {
+    return;
+  }
+  const totalPages = Math.max(1, Math.ceil(totalItems / transactionFilters.pageSize));
+  if (transactionFilters.page > totalPages) {
+    transactionFilters.page = totalPages;
+  }
+  transactionPageInfo.textContent = `Страница ${transactionFilters.page} из ${totalPages}`;
+  transactionPrev.disabled = transactionFilters.page <= 1;
+  transactionNext.disabled = transactionFilters.page >= totalPages;
+};
+
+const renderTransactionFilterChips = (totalCount, filteredCount) => {
+  if (!transactionFilterChips) {
+    return;
+  }
+  const chips = [];
+  if (transactionFilters.search) {
+    chips.push(`Поиск: ${transactionFilters.search}`);
+  }
+  if (transactionFilters.type !== "all") {
+    chips.push(`Тип: ${formatType(transactionFilters.type)}`);
+  }
+  if (transactionFilters.category !== "all") {
+    chips.push(`Категория: ${transactionFilters.category}`);
+  }
+  if (transactionFilters.dateStart || transactionFilters.dateEnd) {
+    chips.push(`Период: ${transactionFilters.dateStart || "…"} — ${transactionFilters.dateEnd || "…"}`
+    );
+  }
+  if (transactionFilters.sort) {
+    const sortLabel = transactionFilters.sort === "amount" ? "Сумма" : "Дата";
+    const dirLabel = transactionFilters.direction === "asc" ? "↑" : "↓";
+    chips.push(`Сорт.: ${sortLabel} ${dirLabel}`);
+  }
+  transactionFilterChips.innerHTML = chips.length
+    ? chips.map((text) => `<span class="filter-chip">${text}</span>`).join("")
+    : "<span class=\"hint\">Фильтры не применены.</span>";
+
+  if (transactionCount) {
+    transactionCount.textContent = `Найдено ${filteredCount} из ${totalCount}.`;
+  }
 };
 
 const renderTable = () => {
@@ -741,31 +943,122 @@ const renderTable = () => {
   if (transactions.length === 0) {
     const row = document.createElement("tr");
     const cell = document.createElement("td");
-    cell.colSpan = 7;
+    cell.colSpan = 8;
     cell.textContent = "Пока нет операций. Добавьте первую запись.";
+    cell.classList.add("hint");
+    row.appendChild(cell);
+    tableBody.appendChild(row);
+    updateTransactionPageInfo(0);
+    renderTransactionFilterChips(0, 0);
+    return;
+  }
+
+  const filtered = getFilteredTransactions();
+  const sorted = sortTransactions(filtered);
+  const totalPages = Math.max(1, Math.ceil(filtered.length / transactionFilters.pageSize));
+  if (transactionFilters.page > totalPages) {
+    transactionFilters.page = totalPages;
+  }
+  const paged = paginateTransactions(sorted);
+  updateTransactionPageInfo(filtered.length);
+  renderTransactionFilterChips(transactions.length, filtered.length);
+
+  if (!paged.length) {
+    const row = document.createElement("tr");
+    const cell = document.createElement("td");
+    cell.colSpan = 8;
+    cell.textContent = "Нет операций по выбранным фильтрам.";
     cell.classList.add("hint");
     row.appendChild(cell);
     tableBody.appendChild(row);
     return;
   }
 
-  const displayList = transactions
-    .slice()
-    .sort((a, b) => new Date(b.date) - new Date(a.date));
+  paged.forEach((item) => {
+    const row = document.createElement("tr");
+    row.innerHTML = `
+      <td>${item.date}</td>
+      <td><span class="tag ${item.type}">${formatType(item.type)}</span></td>
+      <td>${item.category}</td>
+      <td>${item.subcategory || "—"}</td>
+      <td>${formatMoney(item.amount, item.currency)}</td>
+      <td>${item.currency || getBaseCurrency()}</td>
+      <td>${item.note || "—"}</td>
+      <td><button class="button secondary" data-id="${item.id}">Удалить</button></td>
+    `;
+    tableBody.appendChild(row);
+  });
+};
 
-  displayList.forEach((item) => {
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td>${item.date}</td>
-        <td><span class="tag ${item.type}">${formatType(item.type)}</span></td>
-        <td>${item.category}</td>
-        <td>${item.subcategory || "—"}</td>
-        <td>${currencyFormatter.format(item.amount)}</td>
-        <td>${item.note || "—"}</td>
-        <td><button class="button secondary" data-id="${item.id}">Удалить</button></td>
-      `;
-      tableBody.appendChild(row);
-    });
+const syncTransactionFiltersFromUI = () => {
+  if (transactionSearch) {
+    transactionFilters.search = transactionSearch.value.trim();
+  }
+  if (transactionTypeFilter) {
+    transactionFilters.type = transactionTypeFilter.value;
+  }
+  if (transactionCategoryFilter) {
+    transactionFilters.category = transactionCategoryFilter.value;
+  }
+  if (transactionDateStart) {
+    transactionFilters.dateStart = transactionDateStart.value;
+  }
+  if (transactionDateEnd) {
+    transactionFilters.dateEnd = transactionDateEnd.value;
+  }
+  if (transactionSort) {
+    transactionFilters.sort = transactionSort.value;
+  }
+  if (transactionPageSize) {
+    transactionFilters.pageSize = Number.parseInt(transactionPageSize.value, 10) || 10;
+  }
+};
+
+const resetTransactionPage = () => {
+  transactionFilters.page = 1;
+};
+
+const resetTransactionFilters = () => {
+  transactionFilters.search = "";
+  transactionFilters.type = "all";
+  transactionFilters.category = "all";
+  transactionFilters.dateStart = "";
+  transactionFilters.dateEnd = "";
+  transactionFilters.sort = "date";
+  transactionFilters.direction = "desc";
+  transactionFilters.page = 1;
+  transactionFilters.pageSize = 10;
+  syncTransactionFilterControls();
+  renderTable();
+};
+
+const syncTransactionFilterControls = () => {
+  if (transactionSearch) {
+    transactionSearch.value = transactionFilters.search;
+  }
+  if (transactionTypeFilter) {
+    transactionTypeFilter.value = transactionFilters.type;
+  }
+  if (transactionCategoryFilter) {
+    transactionCategoryFilter.value = transactionFilters.category;
+  }
+  if (transactionDateStart) {
+    transactionDateStart.value = transactionFilters.dateStart;
+  }
+  if (transactionDateEnd) {
+    transactionDateEnd.value = transactionFilters.dateEnd;
+  }
+  if (transactionSort) {
+    transactionSort.value = transactionFilters.sort;
+  }
+  if (transactionPageSize) {
+    transactionPageSize.value = String(transactionFilters.pageSize);
+  }
+  if (transactionSortDir) {
+    const isAsc = transactionFilters.direction === "asc";
+    transactionSortDir.setAttribute("aria-pressed", String(isAsc));
+    transactionSortDir.textContent = isAsc ? "По возр." : "По убыв.";
+  }
 };
 
 const buildTotals = (filterType, source = transactions) => {
@@ -773,7 +1066,11 @@ const buildTotals = (filterType, source = transactions) => {
     .filter((item) => (filterType ? item.type === filterType : true))
     .reduce(
       (acc, item) => {
-        acc[item.category] = (acc[item.category] || 0) + item.amount;
+        const { amount, converted } = transactionToBase(item);
+        if (!converted) {
+          return acc;
+        }
+        acc[item.category] = (acc[item.category] || 0) + amount;
         return acc;
       },
       {}
@@ -785,8 +1082,12 @@ const buildSubTotals = (type, source = transactions) => {
     .filter((item) => item.type === type && item.subcategory)
     .reduce(
       (acc, item) => {
+        const { amount, converted } = transactionToBase(item);
+        if (!converted) {
+          return acc;
+        }
         const key = `${item.category} · ${item.subcategory}`;
-        acc[key] = (acc[key] || 0) + item.amount;
+        acc[key] = (acc[key] || 0) + amount;
         return acc;
       },
       {}
@@ -808,7 +1109,7 @@ const renderChart = (container, totals, emptyText, options = {}) => {
 
   const visibleEntries = options.limit ? entries.slice(0, options.limit) : entries;
   const maxValue = visibleEntries[0][1];
-  visibleEntries.forEach(([label, value], index) => {
+  visibleEntries.forEach(([label, value]) => {
     const row = document.createElement("div");
     row.className = "chart-row";
 
@@ -817,7 +1118,8 @@ const renderChart = (container, totals, emptyText, options = {}) => {
 
     const swatch = document.createElement("span");
     swatch.className = "chart-swatch";
-    swatch.style.background = palette[index % palette.length];
+    const color = colorForLabel(label);
+    swatch.style.background = color;
 
     const name = document.createElement("span");
     name.textContent = label;
@@ -830,7 +1132,7 @@ const renderChart = (container, totals, emptyText, options = {}) => {
 
     const bar = document.createElement("span");
     bar.style.width = `${Math.max((value / maxValue) * 100, 6)}%`;
-    bar.style.background = palette[index % palette.length];
+    bar.style.background = color;
     barWrapper.appendChild(bar);
 
     const amount = document.createElement("strong");
@@ -848,6 +1150,29 @@ const renderChart = (container, totals, emptyText, options = {}) => {
     note.textContent = `Показано ${options.limit} из ${entries.length}.`;
     container.appendChild(note);
   }
+};
+
+const renderChartSummary = (target, totals, formatter = currencyFormatter) => {
+  if (!target) {
+    return;
+  }
+  const entries = Object.entries(totals).sort((a, b) => b[1] - a[1]);
+  if (!entries.length) {
+    target.textContent = "Нет данных для топ-3.";
+    return;
+  }
+  const topEntries = entries.slice(0, 3);
+  const total = entries.reduce((sum, [, value]) => sum + value, 0) || 1;
+  const formatValue = typeof formatter === "function"
+    ? formatter
+    : (value) => formatter.format(value);
+  target.innerHTML = topEntries
+    .map(([label, value], index) => {
+      const share = ((value / total) * 100).toFixed(0);
+      const className = index === 0 ? "top-item" : "";
+      return `<strong class="${className}">${label}</strong> ${formatValue(value)} (${share}%)`;
+    })
+    .join(" · ");
 };
 
 const buildPie = (totals) => {
@@ -882,11 +1207,11 @@ const renderPie = (container, totals, emptyText) => {
 
   let cumulative = 0;
   const segments = entries
-    .map(([, value], index) => {
+    .map(([label, value]) => {
       const start = cumulative;
       const portion = (value / total) * 100;
       cumulative += portion;
-      return `${palette[index % palette.length]} ${start}% ${cumulative}%`;
+      return `${colorForLabel(label)} ${start}% ${cumulative}%`;
     })
     .join(", ");
 
@@ -902,13 +1227,13 @@ const renderPie = (container, totals, emptyText) => {
   const legend = document.createElement("div");
   legend.className = "pie-legend";
 
-  entries.forEach(([label, value], index) => {
+  entries.forEach(([label, value]) => {
     const item = document.createElement("div");
     item.className = "pie-legend-item";
 
     const swatch = document.createElement("span");
     swatch.className = "pie-swatch";
-    swatch.style.background = palette[index % palette.length];
+    swatch.style.background = colorForLabel(label);
 
     const text = document.createElement("div");
     text.innerHTML = `<strong>${label}</strong><span>${currencyFormatter.format(value)}</span>`;
@@ -923,7 +1248,7 @@ const renderPie = (container, totals, emptyText) => {
   container.appendChild(chart);
 };
 
-const renderLineChart = (target, data) => {
+const renderLineChart = (target, data, formatter = currencyFormatter) => {
   target.innerHTML = "";
 
   if (data.length === 0) {
@@ -1025,7 +1350,7 @@ const renderLineChart = (target, data) => {
     label.setAttribute("text-anchor", "end");
     label.setAttribute("fill", "#94a3b8");
     label.setAttribute("font-size", "10");
-    label.textContent = currencyFormatter.format(value).replace(",00", "");
+    label.textContent = formatter.format(value).replace(",00", "");
     yAxis.appendChild(label);
   });
 
@@ -1071,7 +1396,11 @@ const buildSeries = (formatter, source = transactions) => {
     if (!dataMap[key]) {
       dataMap[key] = { income: 0, expense: 0 };
     }
-    dataMap[key][item.type] += item.amount;
+    const { amount, converted } = transactionToBase(item);
+    if (!converted) {
+      return;
+    }
+    dataMap[key][item.type] += amount;
   });
 
   return Object.keys(dataMap)
@@ -1109,39 +1438,52 @@ const renderCharts = () => {
     showAllSubcategories = false;
   }
 
+  const baseCurrency = getBaseCurrency();
+  const baseFormatter = new Intl.NumberFormat("ru-RU", {
+    style: "currency",
+    currency: baseCurrency,
+    minimumFractionDigits: 2,
+  });
+
   renderChart(
     incomeSubcategoryChart,
     incomeSubcategoryTotals,
     "Добавьте доходы с подкатегориями, чтобы увидеть диаграмму.",
-    { limit: CHART_LIMIT }
+    { limit: CHART_LIMIT, formatter: baseFormatter }
   );
+  renderChartSummary(incomeSubcategorySummary, incomeSubcategoryTotals, (value) => formatMoney(value, baseCurrency));
   renderChart(
     expenseCategoryChart,
     expenseCategoryTotals,
     "Добавьте расходы, чтобы увидеть диаграмму.",
-    { limit: showAllExpenseCategories ? null : CHART_LIMIT }
+    { limit: showAllExpenseCategories ? null : CHART_LIMIT, formatter: baseFormatter }
   );
+  renderChartSummary(expenseCategorySummary, expenseCategoryTotals, (value) => formatMoney(value, baseCurrency));
   renderChart(
     expenseSubcategoryChart,
     expenseSubcategoryTotals,
     "Добавьте расходы с подкатегориями, чтобы увидеть детализацию.",
-    { limit: showAllSubcategories ? null : CHART_LIMIT }
+    { limit: showAllSubcategories ? null : CHART_LIMIT, formatter: baseFormatter }
   );
+  renderChartSummary(expenseSubcategorySummary, expenseSubcategoryTotals, (value) => formatMoney(value, baseCurrency));
   renderPie(
     expensePie,
     expenseCategoryTotals,
     "Добавьте расходы, чтобы увидеть диаграмму."
   );
+  renderChartSummary(expensePieSummary, expenseCategoryTotals, (value) => formatMoney(value, baseCurrency));
   renderPie(
     expenseSubcategoryPie,
     expenseSubcategoryTotals,
     "Добавьте расходы с подкатегориями, чтобы увидеть диаграмму."
   );
+  renderChartSummary(expenseSubcategoryPieSummary, expenseSubcategoryTotals, (value) => formatMoney(value, baseCurrency));
   renderPie(
     incomePie,
     incomeSubcategoryTotals,
     "Добавьте доходы с подкатегориями, чтобы увидеть диаграмму."
   );
+  renderChartSummary(incomePieSummary, incomeSubcategoryTotals, (value) => formatMoney(value, baseCurrency));
 
   syncToggleButton(toggleExpenseCategoryButton, showAllExpenseCategories, canExpandExpenseCategories);
   syncToggleButton(toggleSubcategoryButton, showAllSubcategories, canExpandExpenseSubcategories);
@@ -1184,7 +1526,26 @@ const renderCategories = () => {
   renderCategoryOptions();
   renderCategoryListOptions();
   renderCategoryManager();
+  renderTransactionCategoryFilter();
   updateTransactionFormState();
+};
+
+const renderTransactionCategoryFilter = () => {
+  if (!transactionCategoryFilter) {
+    return;
+  }
+  const options = ["all", ...Object.keys(categories).sort()];
+  transactionCategoryFilter.innerHTML = "";
+  options.forEach((value) => {
+    const option = document.createElement("option");
+    option.value = value;
+    option.textContent = value === "all" ? "Все" : value;
+    transactionCategoryFilter.appendChild(option);
+  });
+  if (!options.includes(transactionFilters.category)) {
+    transactionFilters.category = "all";
+  }
+  transactionCategoryFilter.value = transactionFilters.category;
 };
 
 const updateSubcategoryOptions = (categoryName) => {
@@ -1245,24 +1606,66 @@ const filterTransactionsByRange = (items) => {
   });
 };
 
+const weekKey = (date) => {
+  const target = new Date(date);
+  const day = (target.getUTCDay() + 6) % 7;
+  target.setUTCDate(target.getUTCDate() - day + 3);
+  const firstThursday = new Date(Date.UTC(target.getUTCFullYear(), 0, 4));
+  const weekNumber = 1 + Math.round(((target - firstThursday) / 86400000 - 3) / 7);
+  return `${target.getUTCFullYear()}-W${String(weekNumber).padStart(2, "0")}`;
+};
+
+const quarterKey = (date) => {
+  const year = date.slice(0, 4);
+  const month = Number.parseInt(date.slice(5, 7), 10);
+  const quarter = Math.ceil(month / 3);
+  return `${year}-Q${quarter}`;
+};
+
+const getReportFormatter = () => {
+  if (reportGranularity === "monthly") {
+    return (date) => date.slice(0, 7);
+  }
+  if (reportGranularity === "weekly") {
+    return (date) => weekKey(date);
+  }
+  if (reportGranularity === "quarterly") {
+    return (date) => quarterKey(date);
+  }
+  return (date) => date;
+};
+
 const renderReports = () => {
+  const baseCurrency = getBaseCurrency();
   const filtered = filterTransactionsByRange(transactions);
+  const missingCurrencies = new Set();
   const totals = filtered.reduce(
     (acc, item) => {
+      const { amount, converted } = transactionToBase(item);
+      if (!converted) {
+        missingCurrencies.add(item.currency);
+        return acc;
+      }
       if (item.type === "income") {
-        acc.income += item.amount;
+        acc.income += amount;
       } else {
-        acc.expense += item.amount;
+        acc.expense += amount;
       }
       return acc;
     },
     { income: 0, expense: 0 }
   );
 
-  reportIncomeEl.textContent = currencyFormatter.format(totals.income);
-  reportExpenseEl.textContent = currencyFormatter.format(totals.expense);
-  reportBalanceEl.textContent = currencyFormatter.format(totals.income - totals.expense);
+  reportIncomeEl.textContent = formatMoney(totals.income, baseCurrency);
+  reportExpenseEl.textContent = formatMoney(totals.expense, baseCurrency);
+  reportBalanceEl.textContent = formatMoney(totals.income - totals.expense, baseCurrency);
   reportTransactionsCountEl.textContent = filtered.length;
+
+  if (reportCurrencyNote) {
+    reportCurrencyNote.textContent = missingCurrencies.size
+      ? `Не учтены операции без курса: ${[...missingCurrencies].join(", ")}.`
+      : "";
+  }
 
   const expenseCategoryTotals = buildTotals("expense", filtered);
   const expenseSubcategoryTotals = buildSubTotals("expense", filtered);
@@ -1272,25 +1675,80 @@ const renderReports = () => {
     reportExpenseCategories,
     expenseCategoryTotals,
     "Нет расходов за выбранный период.",
-    { limit: 8 }
+    { limit: 8, formatter: new Intl.NumberFormat("ru-RU", { style: "currency", currency: baseCurrency, minimumFractionDigits: 2 }) }
   );
+  renderChartSummary(reportExpenseCategoriesSummary, expenseCategoryTotals, (value) => formatMoney(value, baseCurrency));
   renderChart(
     reportExpenseSubcategories,
     expenseSubcategoryTotals,
     "Нет расходов с подкатегориями за выбранный период.",
-    { limit: 8 }
+    { limit: 8, formatter: new Intl.NumberFormat("ru-RU", { style: "currency", currency: baseCurrency, minimumFractionDigits: 2 }) }
   );
+  renderChartSummary(reportExpenseSubcategoriesSummary, expenseSubcategoryTotals, (value) => formatMoney(value, baseCurrency));
   renderChart(
     reportIncomeSubcategories,
     incomeSubcategoryTotals,
     "Нет доходов с подкатегориями за выбранный период.",
-    { limit: 8 }
+    { limit: 8, formatter: new Intl.NumberFormat("ru-RU", { style: "currency", currency: baseCurrency, minimumFractionDigits: 2 }) }
   );
+  renderChartSummary(reportIncomeSubcategoriesSummary, incomeSubcategoryTotals, (value) => formatMoney(value, baseCurrency));
 
-  const seriesFormatter = reportGranularity === "monthly"
-    ? (date) => date.slice(0, 7)
-    : (date) => date;
-  renderLineChart(reportLineChart, buildSeries(seriesFormatter, filtered));
+  const seriesFormatter = getReportFormatter();
+  const series = buildSeries(seriesFormatter, filtered);
+  renderLineChart(reportLineChart, series, new Intl.NumberFormat("ru-RU", { style: "currency", currency: baseCurrency, minimumFractionDigits: 2 }));
+  if (reportLineSummary) {
+    const maxIncome = series.reduce((max, item) => (item.income > max.income ? item : max), { income: 0 });
+    const maxExpense = series.reduce((max, item) => (item.expense > max.expense ? item : max), { expense: 0 });
+    reportLineSummary.textContent = series.length
+      ? `Пик доходов: ${maxIncome.label} · ${formatMoney(maxIncome.income, baseCurrency)}. Пик расходов: ${maxExpense.label} · ${formatMoney(maxExpense.expense, baseCurrency)}.`
+      : "Нет данных для динамики.";
+  }
+
+  const range = clampReportRange(reportRange.start, reportRange.end);
+  if (reportComparison && reportComparisonDetail && range.start && range.end) {
+    const startDate = new Date(range.start);
+    const endDate = new Date(range.end);
+    const days = Math.round((endDate - startDate) / 86400000) + 1;
+    const prevEnd = new Date(startDate);
+    prevEnd.setDate(prevEnd.getDate() - 1);
+    const prevStart = new Date(prevEnd);
+    prevStart.setDate(prevEnd.getDate() - (days - 1));
+    const prevRange = {
+      start: prevStart.toISOString().slice(0, 10),
+      end: prevEnd.toISOString().slice(0, 10),
+    };
+    const prevFiltered = transactions.filter((item) => item.date >= prevRange.start && item.date <= prevRange.end);
+    const prevTotals = prevFiltered.reduce(
+      (acc, item) => {
+        const { amount, converted } = transactionToBase(item);
+        if (!converted) {
+          return acc;
+        }
+        if (item.type === "income") {
+          acc.income += amount;
+        } else {
+          acc.expense += amount;
+        }
+        return acc;
+      },
+      { income: 0, expense: 0 }
+    );
+    const incomeDelta = totals.income - prevTotals.income;
+    const expenseDelta = totals.expense - prevTotals.expense;
+    const incomeArrow = incomeDelta >= 0 ? "↑" : "↓";
+    const expenseArrow = expenseDelta >= 0 ? "↑" : "↓";
+    reportComparison.textContent = `${incomeArrow} Δ доходы ${formatMoney(incomeDelta, baseCurrency)} · ${expenseArrow} Δ расходы ${formatMoney(expenseDelta, baseCurrency)}`;
+    reportComparison.classList.toggle("trend-positive", incomeDelta >= 0 && expenseDelta <= 0);
+    reportComparison.classList.toggle("trend-negative", incomeDelta < 0 && expenseDelta > 0);
+    reportComparison.classList.toggle("trend-neutral", !(incomeDelta >= 0 && expenseDelta <= 0) && !(incomeDelta < 0 && expenseDelta > 0));
+    reportComparisonDetail.textContent = `Период сравнения: ${prevRange.start} — ${prevRange.end}`;
+  } else if (reportComparison) {
+    reportComparison.textContent = "—";
+    reportComparison.classList.remove("trend-positive", "trend-negative", "trend-neutral");
+    if (reportComparisonDetail) {
+      reportComparisonDetail.textContent = "";
+    }
+  }
 };
 
 const capitalFormatMoney = (value) => {
@@ -1318,18 +1776,6 @@ const capitalDefaultIcon = (type) => ({
   real_estate: "🏠",
   other: "📦",
 }[type] || "💼");
-
-const showToast = (message) => {
-  if (!toast) {
-    return;
-  }
-  toast.textContent = message;
-  toast.classList.remove("is-hidden");
-  clearTimeout(showToast._timer);
-  showToast._timer = setTimeout(() => {
-    toast.classList.add("is-hidden");
-  }, 2200);
-};
 
 const renderSelfTestPanel = (results) => {
   if (!selfTestPanel) {
@@ -3064,6 +3510,18 @@ const addCategory = () => {
   newSubcategoryInput.value = "";
 };
 
+const ensureCategoryExists = (name, type, subcategory) => {
+  if (!name) {
+    return;
+  }
+  if (!categories[name]) {
+    categories[name] = { type, subs: [] };
+  }
+  if (subcategory && !categories[name].subs.includes(subcategory)) {
+    categories[name].subs.push(subcategory);
+  }
+};
+
 const renameCategory = (oldName, newName) => {
   if (!newName || oldName === newName || categories[newName]) {
     return;
@@ -3440,18 +3898,88 @@ const resetForm = () => {
   if (!dateInput.value) {
     dateInput.valueAsDate = new Date();
   }
+  if (transactionCurrencySelect) {
+    transactionCurrencySelect.value = getBaseCurrency();
+  }
+  updateAmountCurrencyHint();
 };
 
 const transactionSubmitButton = form?.querySelector("button[type='submit']");
+
+const updateAmountCurrencyHint = () => {
+  if (!amountCurrencyHint || !transactionCurrencySelect) {
+    return;
+  }
+  const currency = transactionCurrencySelect.value || getBaseCurrency();
+  amountCurrencyHint.textContent = `Сумма в ${currency}.`;
+};
+
+const setFieldError = (field, message) => {
+  if (!field || !field.parentElement) {
+    return;
+  }
+  let messageEl = field.parentElement.querySelector(".field-message");
+  if (!messageEl) {
+    messageEl = document.createElement("small");
+    messageEl.className = "field-message";
+    field.parentElement.appendChild(messageEl);
+  }
+  messageEl.textContent = message || "";
+  field.classList.toggle("is-invalid", Boolean(message));
+  field.setAttribute("aria-invalid", Boolean(message));
+};
+
+const validateTransactionForm = (showMessages = false) => {
+  if (!form) {
+    return false;
+  }
+  const dateField = document.getElementById("date");
+  const amountField = document.getElementById("amount");
+  const categoryField = categorySelect;
+  const currencyField = transactionCurrencySelect;
+  const date = dateField?.value;
+  const amount = Number.parseFloat(amountField?.value);
+  const category = categoryField?.value;
+  const currency = currencyField?.value;
+  const isValidDate = Boolean(date);
+  const isValidAmount = Number.isFinite(amount) && amount > 0;
+  const isValidCategory = Boolean(category);
+  const isValidCurrency = Boolean(currency);
+  if (showMessages) {
+    setFieldError(dateField, isValidDate ? "" : "Укажите дату.");
+    setFieldError(amountField, isValidAmount ? "" : "Введите сумму больше нуля.");
+    setFieldError(categoryField, isValidCategory ? "" : "Выберите категорию.");
+    setFieldError(currencyField, isValidCurrency ? "" : "Выберите валюту.");
+  }
+  return isValidDate && isValidAmount && isValidCategory && isValidCurrency;
+};
 
 const updateTransactionFormState = () => {
   if (!form || !transactionSubmitButton) {
     return;
   }
-  const date = document.getElementById("date")?.value;
-  const category = categorySelect?.value;
-  const amount = Number.parseFloat(document.getElementById("amount")?.value);
-  const isValid = Boolean(date) && Boolean(category) && Number.isFinite(amount) && amount > 0;
+  const dateField = document.getElementById("date");
+  const amountField = document.getElementById("amount");
+  const categoryField = categorySelect;
+  const currencyField = transactionCurrencySelect;
+  const isValidDate = Boolean(dateField?.value);
+  const amount = Number.parseFloat(amountField?.value);
+  const isValidAmount = Number.isFinite(amount) && amount > 0;
+  const isValidCategory = Boolean(categoryField?.value);
+  const isValidCurrency = Boolean(currencyField?.value);
+  if (dateField?.classList.contains("is-invalid")) {
+    setFieldError(dateField, isValidDate ? "" : "Укажите дату.");
+  }
+  if (amountField?.classList.contains("is-invalid")) {
+    setFieldError(amountField, isValidAmount ? "" : "Введите сумму больше нуля.");
+  }
+  if (categoryField?.classList.contains("is-invalid")) {
+    setFieldError(categoryField, isValidCategory ? "" : "Выберите категорию.");
+  }
+  if (currencyField?.classList.contains("is-invalid")) {
+    setFieldError(currencyField, isValidCurrency ? "" : "Выберите валюту.");
+  }
+  const isValid = isValidDate && isValidAmount && isValidCategory && isValidCurrency;
   transactionSubmitButton.disabled = !isValid;
 };
 
@@ -3506,11 +4034,12 @@ const bindEvents = () => {
       const type = document.getElementById("type").value;
       const category = categorySelect.value;
       const subcategory = subcategorySelect.value || "";
+      const currency = transactionCurrencySelect?.value || getBaseCurrency();
       const amount = Number.parseFloat(document.getElementById("amount").value);
       const note = document.getElementById("note").value.trim();
 
-      if (!date || !category || Number.isNaN(amount) || amount <= 0) {
-        showError("Заполните дату, категорию и сумму больше нуля.");
+      if (!validateTransactionForm(true)) {
+        showError("Заполните обязательные поля перед сохранением.");
         return;
       }
 
@@ -3522,6 +4051,7 @@ const bindEvents = () => {
         category,
         subcategory,
         amount,
+        currency,
         note,
         createdAt: now,
         updatedAt: now,
@@ -3538,6 +4068,84 @@ const bindEvents = () => {
       on(field, "change", updateTransactionFormState, "валидация формы");
     });
   }
+
+  const filterFields = [
+    transactionSearch,
+    transactionTypeFilter,
+    transactionCategoryFilter,
+    transactionDateStart,
+    transactionDateEnd,
+    transactionSort,
+    transactionPageSize,
+  ].filter(Boolean);
+  filterFields.forEach((field) => {
+    on(field, "input", () => {
+      syncTransactionFiltersFromUI();
+      resetTransactionPage();
+      renderTable();
+    }, "фильтр операций");
+    on(field, "change", () => {
+      syncTransactionFiltersFromUI();
+      resetTransactionPage();
+      renderTable();
+    }, "фильтр операций");
+  });
+
+  on(transactionSortDir, "click", () => {
+    transactionFilters.direction = transactionFilters.direction === "asc" ? "desc" : "asc";
+    syncTransactionFilterControls();
+    renderTable();
+  }, "сортировка операций");
+
+  on(transactionReset, "click", () => {
+    resetTransactionFilters();
+  }, "сброс фильтров");
+
+  on(transactionPrev, "click", () => {
+    transactionFilters.page = Math.max(1, transactionFilters.page - 1);
+    renderTable();
+  }, "пагинация операций");
+
+  on(transactionNext, "click", () => {
+    transactionFilters.page += 1;
+    renderTable();
+  }, "пагинация операций");
+
+  on(sidebarToggle, "click", () => {
+    const shell = document.querySelector(".app-shell");
+    const isOpen = !shell?.classList.contains("is-sidebar-open");
+    shell?.classList.toggle("is-sidebar-open", isOpen);
+    sidebarOverlay?.classList.toggle("is-active", isOpen);
+    document.body.classList.toggle("sidebar-open", isOpen);
+  }, "sidebar");
+
+  on(sidebarOverlay, "click", () => {
+    document.querySelector(".app-shell")?.classList.remove("is-sidebar-open");
+    sidebarOverlay?.classList.remove("is-active");
+    document.body.classList.remove("sidebar-open");
+  }, "sidebar overlay");
+
+  on(sidebarClose, "click", () => {
+    document.querySelector(".app-shell")?.classList.remove("is-sidebar-open");
+    sidebarOverlay?.classList.remove("is-active");
+    document.body.classList.remove("sidebar-open");
+  }, "sidebar close");
+
+  onAll(dateQuickButtons, "click", (event) => {
+    const value = event.currentTarget.dataset.dateQuick;
+    const dateInput = document.getElementById("date");
+    if (!dateInput) {
+      return;
+    }
+    const base = new Date();
+    if (value === "yesterday") {
+      base.setDate(base.getDate() - 1);
+    }
+    dateInput.value = base.toISOString().slice(0, 10);
+    updateTransactionFormState();
+  }, "быстрая дата");
+
+  on(transactionCurrencySelect, "change", updateAmountCurrencyHint, "валюта операции");
 
 on(document.getElementById("type"), "change", () => {
   renderCategoryOptions();
@@ -3578,6 +4186,9 @@ on(newSubcategoryInput, "keydown", (event) => {
 onAll(navLinks, "click", (event) => {
   event.preventDefault();
   setView(event.currentTarget.dataset.viewTarget);
+  document.querySelector(".app-shell")?.classList.remove("is-sidebar-open");
+  sidebarOverlay?.classList.remove("is-active");
+  document.body.classList.remove("sidebar-open");
 }, "навигация");
 
 onAll(layoutButtons, "click", (event) => setLayout(event.currentTarget.dataset.layout), "layout");
@@ -3638,13 +4249,14 @@ on(exportButton, "click", () => {
     return;
   }
 
-  const header = ["Дата", "Тип", "Категория", "Подкатегория", "Сумма", "Комментарий"];
+  const header = ["Дата", "Тип", "Категория", "Подкатегория", "Сумма", "Валюта", "Комментарий"];
   const rows = transactions.map((item) => [
     item.date,
     formatType(item.type),
     item.category,
     item.subcategory,
     item.amount.toFixed(2),
+    item.currency || getBaseCurrency(),
     item.note || "",
   ]);
 
@@ -3663,7 +4275,85 @@ on(exportButton, "click", () => {
   link.download = `budget-${new Date().toISOString().slice(0, 10)}.csv`;
   link.click();
   URL.revokeObjectURL(url);
+  showNotice("Экспорт CSV готов.", "success");
 }, "экспорт CSV");
+
+on(importCsvInput, "change", async (event) => {
+  const file = event.target.files?.[0];
+  if (!file) {
+    return;
+  }
+  try {
+    const text = await file.text();
+    const rows = parseCsv(text.trim());
+    const [header, ...dataRows] = rows;
+    if (!header || header.length < 5) {
+      throw new Error("Некорректный CSV");
+    }
+    const headerMap = header.map((cell) => cell.trim().toLowerCase());
+    const indexOf = (nameVariants) => headerMap.findIndex((value) => nameVariants.includes(value));
+    const idxDate = indexOf(["дата", "date"]);
+    const idxType = indexOf(["тип", "type"]);
+    const idxCategory = indexOf(["категория", "category"]);
+    const idxSubcategory = indexOf(["подкатегория", "subcategory"]);
+    const idxAmount = indexOf(["сумма", "amount"]);
+    const idxCurrency = indexOf(["валюта", "currency"]);
+    const idxNote = indexOf(["комментарий", "note"]);
+    if ([idxDate, idxType, idxCategory, idxAmount].some((idx) => idx === -1)) {
+      throw new Error("Нет обязательных колонок");
+    }
+    const imported = [];
+    let skipped = 0;
+    dataRows.forEach((row) => {
+      if (!row.length) {
+        skipped += 1;
+        return;
+      }
+      const date = row[idxDate]?.trim();
+      const typeLabel = row[idxType]?.trim().toLowerCase();
+      const type = typeLabel === "доход" || typeLabel === "income" ? "income" : "expense";
+      const category = row[idxCategory]?.trim();
+      const subcategory = idxSubcategory !== -1 ? row[idxSubcategory]?.trim() : "";
+      const amount = Number.parseFloat((row[idxAmount] || "").replace(",", "."));
+      const currency = idxCurrency !== -1
+        ? normalizeTransactionCurrency(row[idxCurrency], getBaseCurrency())
+        : getBaseCurrency();
+      const note = idxNote !== -1 ? row[idxNote]?.trim() : "";
+      if (!date || !category || !Number.isFinite(amount)) {
+        skipped += 1;
+        return;
+      }
+      ensureCategoryExists(category, type, subcategory);
+      const now = new Date().toISOString();
+      imported.push({
+        id: generateId("tx"),
+        date,
+        type,
+        category,
+        subcategory,
+        amount,
+        currency,
+        note,
+        createdAt: now,
+        updatedAt: now,
+      });
+    });
+    if (!imported.length) {
+      showError("Не удалось найти корректные строки для импорта.");
+      return;
+    }
+    transactions = [...transactions, ...imported];
+    await Storage.set(STORAGE_KEY, JSON.stringify(transactions));
+    await saveCategories(categories);
+    renderCategories();
+    render();
+    showNotice(`Импортировано операций: ${imported.length}. Пропущено: ${skipped}.`, "success");
+  } catch (error) {
+    showError("Не удалось импортировать CSV.");
+  } finally {
+    importCsvInput.value = "";
+  }
+}, "импорт CSV");
 
 on(clearButton, "click", () => {
   if (!confirm("Удалить все операции?")) {
@@ -4135,6 +4825,8 @@ onAll(capitalTabs, "click", (event) => {
   on(backupButton, "click", () => {
     const payload = buildBackupPayload();
     downloadJson(payload, `budget-backup-${new Date().toISOString().slice(0, 10)}.json`);
+    saveBackupMeta(payload);
+    showNotice("Backup сохранен.", "success");
   }, "backup");
 
   on(restoreInput, "change", async (event) => {
@@ -4151,11 +4843,13 @@ onAll(capitalTabs, "click", (event) => {
       undoStack = [];
       renderCategories();
       initializeReportRange();
+      saveBackupMeta(data);
       updateUndoState();
       updateTransactionFormState();
       capitalSetTab("overview");
       setLayout(currentLayout);
       setView(activeView);
+      showNotice("Backup восстановлен.", "success");
     } catch (error) {
       showError("Не удалось восстановить backup.");
     } finally {
@@ -4171,6 +4865,17 @@ const loadState = async () => {
   const capitalMigrated = normalizeCapitalState();
   if (capitalMigrated) {
     await saveCapitalV2(capitalState);
+  }
+
+  const savedBackupMeta = await Storage.get(BACKUP_META_KEY);
+  if (savedBackupMeta) {
+    try {
+      renderBackupMeta(JSON.parse(savedBackupMeta));
+    } catch (error) {
+      renderBackupMeta(null);
+    }
+  } else {
+    renderBackupMeta(null);
   }
 
   const savedView = await Storage.get(VIEW_KEY);
@@ -4194,6 +4899,7 @@ const initializeApp = safeExec(async () => {
 
   bindEvents();
   renderCategories();
+  syncTransactionFilterControls();
   resetForm();
   initializeReportRange();
   updateUndoState();
