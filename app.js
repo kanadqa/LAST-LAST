@@ -2929,6 +2929,7 @@ const renderCapitalAssets = () => {
           ? "—"
           : capitalFormatMoney(profitMeta.profit);
         const percentLabel = profitMeta.percent == null ? "—" : `${profitMeta.percent.toFixed(1)}%`;
+        const hasRate = amountBase != null && investedBase != null;
         const showPercentWarning = profitMeta.percent == null && hasRate;
         const liquidityLabel = capitalLiquidityShort(asset.liquidity);
         const iconLetter = (asset.name || "?").trim().charAt(0).toUpperCase();
@@ -2937,7 +2938,6 @@ const renderCapitalAssets = () => {
           ? `<img src="${asset.avatarDataUrl}" alt="" />`
           : `<span>${iconValue || iconLetter}</span>`;
         const detailId = `asset-details-${asset.id}`;
-        const hasRate = amountBase != null && investedBase != null;
         const missingRateChip = hasRate ? "" : "<span class='chip chip-missing'>нет курса</span>";
 
         const card = document.createElement("div");
