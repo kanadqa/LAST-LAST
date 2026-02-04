@@ -1916,9 +1916,9 @@ const renderReports = () => {
   renderChartSummary(reportIncomeSubcategoriesSummary, incomeSubcategoryTotals, (value) => formatMoney(value, baseCurrency));
 
   if (reportInsight) {
-    const topExpense = [...expenseCategoryTotals.entries()]
+    const topExpense = Object.entries(expenseCategoryTotals)
       .sort((a, b) => b[1] - a[1])[0];
-    const topIncome = [...incomeSubcategoryTotals.entries()]
+    const topIncome = Object.entries(incomeSubcategoryTotals)
       .sort((a, b) => b[1] - a[1])[0];
     if (!filtered.length) {
       reportInsight.textContent = "Нет данных за выбранный период — попробуйте расширить диапазон.";

@@ -318,20 +318,24 @@
               </div>
 
               <div class="category-panel" data-category-panel="capital">
-                <h3>Категории активов</h3>
-                <p class="hint">Категории и подкатегории капитала задаются вручную.</p>
-                <form id="capitalCategoryForm" class="form compact-form">
+                <div class="category-header">
+                  <div>
+                    <h3>Категории капитала</h3>
+                    <p class="hint">Настройте категории активов по аналогии с обычными категориями.</p>
+                  </div>
+                </div>
+                <form id="capitalCategoryForm" class="form two-columns">
                   <label>
                     Категория
                     <input type="text" id="capitalCategoryName" placeholder="Например, Вклад" required />
                   </label>
                   <label>
-                    Подкатегория
+                    Подкатегория (опционально)
                     <input type="text" id="capitalSubcategoryName" placeholder="Например, Сбербанк" />
                   </label>
-                  <button type="submit" class="button secondary">Добавить</button>
+                  <button class="button secondary" type="submit">Добавить</button>
                 </form>
-                <div id="capitalCategoryManager" class="capital-category-list"></div>
+                <p class="hint">Категории и подкатегории капитала задаются вручную.</p>
               </div>
             </div>
           </section>
@@ -352,6 +356,15 @@
               Категории верхнего уровня
             </div>
             <div id="categoryManager" class="category-manager"></div>
+          </section>
+          <section class="card category-panel" data-category-panel="capital">
+            <div class="category-header">
+              <div>
+                <h2>Управление категориями капитала</h2>
+                <p class="hint">Добавляйте, удаляйте и поддерживайте структуру активов.</p>
+              </div>
+            </div>
+            <div id="capitalCategoryManager" class="capital-category-list"></div>
           </section>
         </section>
 
