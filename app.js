@@ -175,7 +175,12 @@ const transactionPageSize = document.getElementById("transactionPageSize");
 const transactionReset = document.getElementById("transactionReset");
 const transactionFilterChips = document.getElementById("transactionFilterChips");
 const transactionCount = document.getElementById("transactionCount");
+const transactionFavorites = document.getElementById("transactionFavorites");
+const transactionSelectAll = document.getElementById("transactionSelectAll");
+const transactionDeleteSelected = document.getElementById("transactionDeleteSelected");
+const transactionClearSelection = document.getElementById("transactionClearSelection");
 const amountCurrencyHint = document.getElementById("amountCurrencyHint");
+const amountLastHint = document.getElementById("amountLastHint");
 const dateQuickButtons = document.querySelectorAll("[data-date-quick]");
 const incomeSubcategorySummary = document.getElementById("incomeSubcategorySummary");
 const expenseCategorySummary = document.getElementById("expenseCategorySummary");
@@ -183,6 +188,8 @@ const expenseSubcategorySummary = document.getElementById("expenseSubcategorySum
 const expensePieSummary = document.getElementById("expensePieSummary");
 const expenseSubcategoryPieSummary = document.getElementById("expenseSubcategoryPieSummary");
 const incomePieSummary = document.getElementById("incomePieSummary");
+const reportInsight = document.getElementById("reportInsight");
+const capitalAssetMissingRate = document.getElementById("capitalAssetMissingRate");
 
 const appUtils = window.AppUtils || {};
 let colorForLabel = appUtils.colorForLabel;
@@ -287,6 +294,8 @@ if (!parseCsv) {
 }
 
 const STORAGE_KEY = "budget.transactions.v2";
+const LAST_TX_PRESET_KEY = "budget.transactions.preset.v1";
+const LAST_TX_AMOUNT_BY_CATEGORY_KEY = "budget.transactions.amountByCategory.v1";
 const CATEGORY_KEY = "budget.categories.v3";
 const VIEW_KEY = "budget.view.active";
 const LAYOUT_KEY = "budget.layout";
@@ -757,12 +766,17 @@ const transactionFilters = {
   page: 1,
   pageSize: 10,
 };
+let selectedTransactionIds = new Set();
+let transactionPageIds = [];
+let lastTransactionPreset = null;
+let lastAmountByCategory = {};
 const assetFilters = {
   search: "",
   type: "all",
   liquidity: "all",
   sort: "amount",
   direction: "desc",
+  missingRateOnly: false,
 };
 let capitalAssetAvatarDataUrl = "";
 let assetUiState = { groups: {}, subgroups: {} };
@@ -1076,19 +1090,77 @@ const renderTransactionFilterChips = (totalCount, filteredCount) => {
   }
 };
 
+const renderTransactionFavorites = () => {
+  if (!transactionFavorites) {
+    return;
+  }
+  if (!transactions.length) {
+    transactionFavorites.innerHTML = "<span class=\"hint\">Нет часто используемых категорий.</span>";
+    return;
+  }
+  const counts = transactions.reduce((acc, item) => {
+    acc[item.category] = (acc[item.category] || 0) + 1;
+    return acc;
+  }, {});
+  const topCategories = Object.entries(counts)
+    .sort((a, b) => b[1] - a[1])
+    .slice(0, 3)
+    .map(([name]) => name);
+  if (!topCategories.length) {
+    transactionFavorites.innerHTML = "<span class=\"hint\">Нет часто используемых категорий.</span>";
+    return;
+  }
+  transactionFavorites.innerHTML = topCategories
+    .map((name) => `<button class="chip" data-favorite-category="${name}" type="button">★ ${name}</button>`)
+    .join("");
+};
+
+const updateTransactionSelectionUI = () => {
+  if (transactionDeleteSelected) {
+    transactionDeleteSelected.disabled = selectedTransactionIds.size === 0;
+  }
+  if (transactionClearSelection) {
+    transactionClearSelection.disabled = selectedTransactionIds.size === 0;
+  }
+  if (transactionSelectAll) {
+    const allSelected = transactionPageIds.length > 0
+      && transactionPageIds.every((id) => selectedTransactionIds.has(id));
+    const someSelected = transactionPageIds.some((id) => selectedTransactionIds.has(id));
+    transactionSelectAll.checked = allSelected;
+    transactionSelectAll.indeterminate = !allSelected && someSelected;
+    transactionSelectAll.disabled = transactionPageIds.length === 0;
+  }
+};
+
+const updateAmountLastHint = () => {
+  if (!amountLastHint || !categorySelect) {
+    return;
+  }
+  const category = categorySelect.value;
+  const lastAmount = lastAmountByCategory[category];
+  if (lastAmount != null) {
+    amountLastHint.textContent = `Последняя сумма в категории: ${formatMoney(lastAmount, transactionCurrencySelect?.value || getBaseCurrency())}.`;
+  } else {
+    amountLastHint.textContent = "";
+  }
+};
+
 const renderTable = () => {
   tableBody.innerHTML = "";
 
   if (transactions.length === 0) {
     const row = document.createElement("tr");
     const cell = document.createElement("td");
-    cell.colSpan = 8;
+    cell.colSpan = 9;
     cell.textContent = "Пока нет операций. Добавьте первую запись.";
     cell.classList.add("hint");
     row.appendChild(cell);
     tableBody.appendChild(row);
     updateTransactionPageInfo(0);
     renderTransactionFilterChips(0, 0);
+    renderTransactionFavorites();
+    transactionPageIds = [];
+    updateTransactionSelectionUI();
     return;
   }
 
@@ -1105,28 +1177,37 @@ const renderTable = () => {
   if (!paged.length) {
     const row = document.createElement("tr");
     const cell = document.createElement("td");
-    cell.colSpan = 8;
+    cell.colSpan = 9;
     cell.textContent = "Нет операций по выбранным фильтрам.";
     cell.classList.add("hint");
     row.appendChild(cell);
     tableBody.appendChild(row);
+    renderTransactionFavorites();
+    transactionPageIds = [];
+    updateTransactionSelectionUI();
     return;
   }
 
+  transactionPageIds = paged.map((item) => item.id);
   paged.forEach((item) => {
     const row = document.createElement("tr");
     row.innerHTML = `
+      <td>
+        <input class="transaction-select" type="checkbox" data-select-id="${item.id}" ${selectedTransactionIds.has(item.id) ? "checked" : ""} />
+      </td>
       <td>${item.date}</td>
       <td><span class="tag ${item.type}">${formatType(item.type)}</span></td>
       <td>${item.category}</td>
       <td>${item.subcategory || "—"}</td>
-      <td>${formatMoney(item.amount, item.currency)}</td>
+      <td title="Сводная сумма в базовой валюте рассчитывается в отчетах.">${formatMoney(item.amount, item.currency)}</td>
       <td>${item.currency || getBaseCurrency()}</td>
       <td>${item.note || "—"}</td>
       <td><button class="button secondary" data-id="${item.id}">Удалить</button></td>
     `;
     tableBody.appendChild(row);
   });
+  renderTransactionFavorites();
+  updateTransactionSelectionUI();
 };
 
 const syncTransactionFiltersFromUI = () => {
@@ -1167,6 +1248,7 @@ const resetTransactionFilters = () => {
   transactionFilters.direction = "desc";
   transactionFilters.page = 1;
   transactionFilters.pageSize = 10;
+  selectedTransactionIds.clear();
   syncTransactionFilterControls();
   renderTable();
 };
@@ -1667,6 +1749,7 @@ const renderCategories = () => {
   renderCategoryManager();
   renderTransactionCategoryFilter();
   updateTransactionFormState();
+  updateAmountLastHint();
 };
 
 const renderTransactionCategoryFilter = () => {
@@ -1831,6 +1914,27 @@ const renderReports = () => {
     { limit: 8, formatter: new Intl.NumberFormat("ru-RU", { style: "currency", currency: baseCurrency, minimumFractionDigits: 2 }) }
   );
   renderChartSummary(reportIncomeSubcategoriesSummary, incomeSubcategoryTotals, (value) => formatMoney(value, baseCurrency));
+
+  if (reportInsight) {
+    const topExpense = [...expenseCategoryTotals.entries()]
+      .sort((a, b) => b[1] - a[1])[0];
+    const topIncome = [...incomeSubcategoryTotals.entries()]
+      .sort((a, b) => b[1] - a[1])[0];
+    if (!filtered.length) {
+      reportInsight.textContent = "Нет данных за выбранный период — попробуйте расширить диапазон.";
+    } else if (topExpense || topIncome) {
+      const parts = [];
+      if (topExpense) {
+        parts.push(`Главный расход: ${topExpense[0]} · ${formatMoney(topExpense[1], baseCurrency)}`);
+      }
+      if (topIncome) {
+        parts.push(`Главный доход: ${topIncome[0]} · ${formatMoney(topIncome[1], baseCurrency)}`);
+      }
+      reportInsight.textContent = parts.join(". ") + ".";
+    } else {
+      reportInsight.textContent = "";
+    }
+  }
 
   const seriesFormatter = getReportFormatter();
   const series = buildSeries(seriesFormatter, filtered);
@@ -2727,6 +2831,10 @@ const renderCapitalAssets = () => {
     capitalAssetSortDir.textContent = assetFilters.direction === "asc" ? "По возр." : "По убыв.";
     capitalAssetSortDir.setAttribute("aria-pressed", assetFilters.direction === "asc" ? "true" : "false");
   }
+  if (capitalAssetMissingRate) {
+    capitalAssetMissingRate.setAttribute("aria-pressed", assetFilters.missingRateOnly ? "true" : "false");
+    capitalAssetMissingRate.classList.toggle("is-active", assetFilters.missingRateOnly);
+  }
   if (capitalAssetSearch) {
     capitalAssetSearch.value = assetFilters.search;
   }
@@ -2753,6 +2861,13 @@ const renderCapitalAssets = () => {
     }
     if (assetFilters.liquidity !== "all" && asset.liquidity !== assetFilters.liquidity) {
       return false;
+    }
+    if (assetFilters.missingRateOnly) {
+      const amountBase = assetValueInBase(asset, "amount");
+      const investedBase = assetValueInBase(asset, "invested");
+      if (amountBase != null && investedBase != null) {
+        return false;
+      }
     }
     if (assetFilters.search) {
       const haystack = `${asset.name} ${asset.note || ""}`.toLowerCase();
@@ -4041,6 +4156,33 @@ const resetForm = () => {
     transactionCurrencySelect.value = getBaseCurrency();
   }
   updateAmountCurrencyHint();
+  updateAmountLastHint();
+};
+
+const applyTransactionPreset = () => {
+  if (!lastTransactionPreset) {
+    return;
+  }
+  const typeField = document.getElementById("type");
+  const amountField = document.getElementById("amount");
+  if (typeField && lastTransactionPreset.type) {
+    typeField.value = lastTransactionPreset.type;
+  }
+  if (transactionCurrencySelect && lastTransactionPreset.currency) {
+    transactionCurrencySelect.value = lastTransactionPreset.currency;
+  }
+  if (categorySelect && lastTransactionPreset.category && categories[lastTransactionPreset.category]) {
+    categorySelect.value = lastTransactionPreset.category;
+    updateSubcategoryOptions(lastTransactionPreset.category);
+  }
+  if (subcategorySelect && lastTransactionPreset.subcategory) {
+    subcategorySelect.value = lastTransactionPreset.subcategory;
+  }
+  if (amountField && lastTransactionPreset.amount != null) {
+    amountField.placeholder = String(lastTransactionPreset.amount);
+  }
+  updateAmountCurrencyHint();
+  updateAmountLastHint();
 };
 
 const transactionSubmitButton = form?.querySelector("button[type='submit']");
@@ -4051,6 +4193,16 @@ const updateAmountCurrencyHint = () => {
   }
   const currency = transactionCurrencySelect.value || getBaseCurrency();
   amountCurrencyHint.textContent = `Сумма в ${currency}.`;
+};
+
+const updateActionVisibility = (viewId) => {
+  const actionButtons = document.querySelectorAll("[data-action-scope]");
+  actionButtons.forEach((button) => {
+    const scope = button.dataset.actionScope || "all";
+    const scopes = scope.split(" ").filter(Boolean);
+    const isVisible = scopes.includes("all") || scopes.includes(viewId);
+    button.classList.toggle("is-hidden", !isVisible);
+  });
 };
 
 const setFieldError = (field, message) => {
@@ -4136,6 +4288,7 @@ const setView = (viewId) => {
   if (activeLabel) {
     viewTitle.textContent = activeLabel.textContent;
   }
+  updateActionVisibility(targetView);
   const url = new URL(window.location.href);
   url.searchParams.set("view", targetView);
   window.history.replaceState({}, "", url);
@@ -4195,10 +4348,24 @@ const bindEvents = () => {
         createdAt: now,
         updatedAt: now,
       });
+      lastTransactionPreset = {
+        type,
+        category,
+        subcategory,
+        currency,
+        amount,
+      };
+      lastAmountByCategory = {
+        ...lastAmountByCategory,
+        [category]: amount,
+      };
+      Storage.set(LAST_TX_PRESET_KEY, JSON.stringify(lastTransactionPreset));
+      Storage.set(LAST_TX_AMOUNT_BY_CATEGORY_KEY, JSON.stringify(lastAmountByCategory));
       recordUndo("addTx", { id: transactions[transactions.length - 1].id });
       Storage.set(STORAGE_KEY, JSON.stringify(transactions));
       render();
       resetForm();
+      applyTransactionPreset();
       updateTransactionFormState();
     }, "добавление операции"));
     const formFields = form.querySelectorAll("input, select");
@@ -4284,17 +4451,78 @@ const bindEvents = () => {
     updateTransactionFormState();
   }, "быстрая дата");
 
-  on(transactionCurrencySelect, "change", updateAmountCurrencyHint, "валюта операции");
+  on(transactionCurrencySelect, "change", () => {
+    updateAmountCurrencyHint();
+    updateAmountLastHint();
+  }, "валюта операции");
 
-on(document.getElementById("type"), "change", () => {
-  renderCategoryOptions();
-}, "смена типа операции");
+  on(document.getElementById("type"), "change", () => {
+    renderCategoryOptions();
+  }, "смена типа операции");
 
-on(categorySelect, "change", (event) => {
-  updateSubcategoryOptions(event.target.value);
-}, "смена категории");
+  on(categorySelect, "change", (event) => {
+    updateSubcategoryOptions(event.target.value);
+    updateAmountLastHint();
+  }, "смена категории");
 
-on(addCategoryButton, "click", addCategory, "добавление категории");
+  on(transactionFavorites, "click", (event) => {
+    const target = event.target.closest("[data-favorite-category]");
+    if (!target || !transactionCategoryFilter) {
+      return;
+    }
+    const category = target.dataset.favoriteCategory;
+    transactionFilters.category = category;
+    transactionCategoryFilter.value = category;
+    transactionFilters.page = 1;
+    renderTable();
+  }, "избранные категории");
+
+  on(transactionSelectAll, "change", (event) => {
+    const isChecked = event.target.checked;
+    transactionPageIds.forEach((id) => {
+      if (isChecked) {
+        selectedTransactionIds.add(id);
+      } else {
+        selectedTransactionIds.delete(id);
+      }
+    });
+    renderTable();
+  }, "выбор всех операций");
+
+  on(transactionDeleteSelected, "click", () => {
+    if (!selectedTransactionIds.size) {
+      return;
+    }
+    const toDelete = new Set(selectedTransactionIds);
+    transactions = transactions.filter((item) => !toDelete.has(item.id));
+    selectedTransactionIds.clear();
+    Storage.set(STORAGE_KEY, JSON.stringify(transactions));
+    render();
+  }, "удаление выбранных операций");
+
+  on(transactionClearSelection, "click", () => {
+    selectedTransactionIds.clear();
+    renderTable();
+  }, "снять выбор");
+
+  on(tableBody, "change", (event) => {
+    const checkbox = event.target.closest(".transaction-select");
+    if (!checkbox) {
+      return;
+    }
+    const id = checkbox.dataset.selectId;
+    if (!id) {
+      return;
+    }
+    if (checkbox.checked) {
+      selectedTransactionIds.add(id);
+    } else {
+      selectedTransactionIds.delete(id);
+    }
+    updateTransactionSelectionUI();
+  }, "выбор операции");
+
+  on(addCategoryButton, "click", addCategory, "добавление категории");
 
 on(categoryTypeSelect, "change", () => {
   renderCategoryListOptions();
@@ -4377,6 +4605,7 @@ on(undoButton, "click", undoLastAction, "undo");
       return;
     }
     transactions = transactions.filter((item) => item.id !== id);
+    selectedTransactionIds.delete(id);
     recordUndo("deleteTx", { item: deleted, index });
     Storage.set(STORAGE_KEY, JSON.stringify(transactions));
     render();
@@ -4499,6 +4728,7 @@ on(clearButton, "click", () => {
     return;
   }
   transactions = [];
+  selectedTransactionIds.clear();
   Storage.set(STORAGE_KEY, JSON.stringify(transactions));
   render();
 }, "очистка данных");
@@ -4752,6 +4982,15 @@ onAll(capitalTabs, "click", (event) => {
     }
     renderCapitalAssets();
   }, "направление сортировки");
+
+  on(capitalAssetMissingRate, "click", () => {
+    assetFilters.missingRateOnly = !assetFilters.missingRateOnly;
+    if (capitalAssetMissingRate) {
+      capitalAssetMissingRate.setAttribute("aria-pressed", assetFilters.missingRateOnly ? "true" : "false");
+      capitalAssetMissingRate.classList.toggle("is-active", assetFilters.missingRateOnly);
+    }
+    renderCapitalAssets();
+  }, "фильтр без курса");
 
   on(capitalAssetsList, "click", (event) => {
     const actionButton = event.target.closest("[data-action]");
@@ -5020,6 +5259,8 @@ const loadState = async () => {
   const savedView = await Storage.get(VIEW_KEY);
   const savedLayout = await Storage.get(LAYOUT_KEY);
   const savedUiState = await Storage.get(CAPITAL_ASSETS_UI_KEY);
+  const savedPreset = await Storage.get(LAST_TX_PRESET_KEY);
+  const savedAmountMap = await Storage.get(LAST_TX_AMOUNT_BY_CATEGORY_KEY);
   if (savedUiState) {
     try {
       assetUiState = JSON.parse(savedUiState);
@@ -5030,6 +5271,20 @@ const loadState = async () => {
   const urlView = new URLSearchParams(window.location.search).get("view");
   activeView = urlView || savedView || "dashboard";
   currentLayout = savedLayout || "comfort";
+  if (savedPreset) {
+    try {
+      lastTransactionPreset = JSON.parse(savedPreset);
+    } catch (error) {
+      lastTransactionPreset = null;
+    }
+  }
+  if (savedAmountMap) {
+    try {
+      lastAmountByCategory = JSON.parse(savedAmountMap);
+    } catch (error) {
+      lastAmountByCategory = {};
+    }
+  }
 };
 
 const initializeApp = safeExec(async () => {
@@ -5044,6 +5299,7 @@ const initializeApp = safeExec(async () => {
   renderCategories();
   syncTransactionFilterControls();
   resetForm();
+  applyTransactionPreset();
   initializeReportRange();
   updateUndoState();
   updateTransactionFormState();

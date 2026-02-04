@@ -48,18 +48,18 @@
           <p class="subtitle">Быстрый учет финансов с диаграммами и категориями.</p>
         </div>
         <div class="actions">
-          <button id="undoAction" class="button secondary">Отменить</button>
-          <button id="exportCsv" class="button secondary">Экспорт CSV</button>
-          <label class="button secondary">
+          <button id="undoAction" class="button secondary" data-action-scope="transactions">Отменить</button>
+          <button id="exportCsv" class="button secondary" data-action-scope="transactions reports">Экспорт CSV</button>
+          <label class="button secondary" data-action-scope="transactions">
             Импорт CSV <span class="icon-hint" title="CSV: Дата, Тип, Категория, Подкатегория, Сумма, Валюта, Комментарий">ⓘ</span>
             <input id="importCsv" type="file" accept=".csv,text/csv" hidden />
           </label>
-          <button id="backupJson" class="button secondary">Backup JSON</button>
-          <label class="button secondary">
+          <button id="backupJson" class="button secondary" data-action-scope="all">Backup JSON</button>
+          <label class="button secondary" data-action-scope="all">
             Восстановить JSON
             <input id="restoreJson" type="file" accept="application/json" hidden />
           </label>
-          <button id="clearAll" class="button danger">Очистить все</button>
+          <button id="clearAll" class="button danger" data-action-scope="transactions">Очистить все</button>
         </div>
         <div class="actions-meta">
           <p id="backupMeta" class="hint">Последний backup: —</p>
@@ -175,6 +175,7 @@
                 Сумма
                 <input type="number" id="amount" min="0" step="0.01" required />
                 <small id="amountCurrencyHint" class="hint"></small>
+                <small id="amountLastHint" class="hint"></small>
               </label>
               <label class="full">
                 Комментарий
@@ -205,6 +206,15 @@
                   <select id="transactionCategoryFilter"></select>
                 </label>
                 <button id="transactionReset" class="button secondary small" type="button">Сбросить фильтры</button>
+              </div>
+              <div id="transactionFavorites" class="favorite-chips"></div>
+              <div class="transaction-actions">
+                <label class="checkbox">
+                  <input id="transactionSelectAll" type="checkbox" />
+                  Выбрать все на странице
+                </label>
+                <button id="transactionDeleteSelected" class="button danger small" type="button" disabled>Удалить выбранные</button>
+                <button id="transactionClearSelection" class="button secondary small" type="button" disabled>Снять выбор</button>
               </div>
               <div id="transactionFilterChips" class="filter-chips"></div>
               <p id="transactionCount" class="hint"></p>
@@ -243,6 +253,9 @@
               <table>
                 <thead>
                   <tr>
+                    <th>
+                      <span class="sr-only">Выбор</span>
+                    </th>
                     <th>Дата</th>
                     <th>Тип</th>
                     <th>Категория</th>
@@ -393,6 +406,7 @@
             </div>
           </section>
           <p id="reportCurrencyNote" class="hint"></p>
+          <p id="reportInsight" class="hint"></p>
 
           <section class="card report-grid">
             <div class="report-chart-card report-span">
@@ -574,6 +588,7 @@
                       </select>
                     </label>
                     <button id="capitalAssetSortDir" class="chip chip-toggle" type="button" aria-pressed="false">По убыв.</button>
+                    <button id="capitalAssetMissingRate" class="chip chip-toggle" type="button" aria-pressed="false">Без курса</button>
                   </div>
 
                   <div class="asset-summary">
