@@ -5050,6 +5050,7 @@ const initializeApp = safeExec(async () => {
   capitalSetTab("overview");
   setLayout(currentLayout);
   setView(activeView);
+  window.__appBooted = true;
   if (new URLSearchParams(window.location.search).get("selftest") === "1") {
     await selfTest();
   }

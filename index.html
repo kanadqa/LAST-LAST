@@ -892,5 +892,35 @@
 
   <script src="utils.js"></script>
   <script src="app.js"></script>
+  <script>
+    window.addEventListener("DOMContentLoaded", () => {
+      setTimeout(() => {
+        if (window.__appBooted) {
+          return;
+        }
+        const navLinks = document.querySelectorAll("[data-view-target]");
+        const views = document.querySelectorAll("[data-view]");
+        const viewTitle = document.getElementById("viewTitle");
+        const setView = (viewId) => {
+          views.forEach((view) => {
+            view.classList.toggle("is-active", view.dataset.view === viewId);
+          });
+          navLinks.forEach((link) => {
+            link.classList.toggle("is-active", link.dataset.viewTarget === viewId);
+          });
+          const activeLabel = [...navLinks].find((link) => link.dataset.viewTarget === viewId);
+          if (activeLabel && viewTitle) {
+            viewTitle.textContent = activeLabel.textContent;
+          }
+        };
+        navLinks.forEach((link) => {
+          link.addEventListener("click", (event) => {
+            event.preventDefault();
+            setView(link.dataset.viewTarget);
+          });
+        });
+      }, 500);
+    });
+  </script>
 </body>
 </html>
