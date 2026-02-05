@@ -896,6 +896,18 @@ td {
   color: var(--muted);
   font-size: 12px;
 }
+.category-card-header > div {
+  display: inline-flex;
+  align-items: baseline;
+  gap: 6px;
+  flex-wrap: wrap;
+}
+
+.subcategory-count {
+  color: var(--muted);
+  font-size: 12px;
+}
+
 
 .type-badge {
   border-radius: 999px;

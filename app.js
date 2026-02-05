@@ -2927,7 +2927,7 @@ const renderCapitalCategories = () => {
     header.className = "category-card-header";
 
     const title = document.createElement("div");
-    title.innerHTML = `<strong>${category.name}</strong><span>${category.subs.length} подкатегорий</span>`;
+    title.innerHTML = `<strong>${category.name}</strong><span class="subcategory-count">${category.subs.length} подкатегорий</span>`;
 
     const badge = document.createElement("span");
     badge.className = "type-badge capital";
@@ -4129,7 +4129,7 @@ const renderCategoryManager = () => {
     header.className = "category-card-header";
 
     const title = document.createElement("div");
-    title.innerHTML = `<strong>${categoryName}</strong><span>${subs.length} подкатегорий</span>`;
+    title.innerHTML = `<strong>${categoryName}</strong><span class="subcategory-count">${subs.length} подкатегорий</span>`;
 
     const badge = document.createElement("span");
     badge.className = `type-badge ${payload.type}`;
