@@ -34,6 +34,7 @@ const incomePie = document.getElementById("incomePie");
 const reportLineChart = document.getElementById("reportLineChart");
 const categoryManager = document.getElementById("categoryManager");
 const rootDropzone = document.querySelector("[data-dropzone-root]");
+const capitalRootDropzone = document.querySelector("[data-capital-dropzone-root]");
 const filterTabs = document.querySelectorAll("[data-filter]");
 const navLinks = document.querySelectorAll("[data-view-target]");
 const views = document.querySelectorAll("[data-view]");
@@ -2833,6 +2834,75 @@ const deleteCapitalSubcategory = (categoryName, subcategoryName) => {
   renderCapitalAssets();
 };
 
+const moveCapitalSubcategory = (fromCategory, subName, toCategory) => {
+  if (fromCategory === toCategory) {
+    return;
+  }
+  const from = capitalState.assetCategories.find((item) => item.name === fromCategory);
+  const to = capitalState.assetCategories.find((item) => item.name === toCategory);
+  if (!from || !to) {
+    return;
+  }
+  from.subs = from.subs.filter((sub) => sub !== subName);
+  if (!to.subs.includes(subName)) {
+    to.subs.push(subName);
+  }
+  capitalState.assets.forEach((asset) => {
+    if (asset.category === fromCategory && asset.subcategory === subName) {
+      asset.category = toCategory;
+    }
+  });
+  saveCapitalV2(capitalState);
+  renderCapitalCategories();
+  renderCapitalAssets();
+};
+
+const moveCapitalCategoryToCategory = (fromCategory, toCategory) => {
+  if (fromCategory === toCategory) {
+    return;
+  }
+  const from = capitalState.assetCategories.find((item) => item.name === fromCategory);
+  const to = capitalState.assetCategories.find((item) => item.name === toCategory);
+  if (!from || !to) {
+    return;
+  }
+  const merged = [...new Set([...to.subs, fromCategory, ...from.subs])];
+  to.subs = merged;
+  capitalState.assetCategories = capitalState.assetCategories.filter((item) => item.name !== fromCategory);
+  capitalState.assets.forEach((asset) => {
+    if (asset.category !== fromCategory) {
+      return;
+    }
+    const nextSubcategory = asset.subcategory || fromCategory;
+    asset.category = toCategory;
+    asset.subcategory = nextSubcategory;
+  });
+  saveCapitalV2(capitalState);
+  renderCapitalCategories();
+  renderCapitalAssets();
+};
+
+const promoteCapitalSubcategoryToCategory = (fromCategory, subName) => {
+  if (capitalState.assetCategories.some((item) => item.name === subName)) {
+    return;
+  }
+  const from = capitalState.assetCategories.find((item) => item.name === fromCategory);
+  if (!from) {
+    return;
+  }
+  from.subs = from.subs.filter((sub) => sub !== subName);
+  capitalState.assetCategories.push({ name: subName, subs: [] });
+  capitalState.assets.forEach((asset) => {
+    if (asset.category === fromCategory && asset.subcategory === subName) {
+      asset.category = subName;
+      asset.subcategory = "";
+    }
+  });
+  saveCapitalV2(capitalState);
+  renderCapitalCategories();
+  renderCapitalAssets();
+};
+
 const renderCapitalCategories = () => {
   if (!capitalCategoryManager) {
     return;
@@ -2851,6 +2921,7 @@ const renderCapitalCategories = () => {
     const card = document.createElement("div");
     card.className = "category-card";
     card.dataset.category = category.name;
+    card.draggable = true;
 
     const header = document.createElement("div");
     header.className = "category-card-header";
@@ -2885,6 +2956,7 @@ const renderCapitalCategories = () => {
 
     const list = document.createElement("div");
     list.className = "subcategory-list";
+    list.dataset.capitalDropzone = category.name;
 
     if (!category.subs.length) {
       const empty = document.createElement("p");
@@ -2898,6 +2970,7 @@ const renderCapitalCategories = () => {
       row.className = "subcategory-row";
       row.dataset.category = category.name;
       row.dataset.subcategory = sub;
+      row.draggable = true;
 
       const name = document.createElement("span");
       name.textContent = sub;
@@ -4268,6 +4341,119 @@ const render = (viewId = activeView) => {
   }
 };
 
+const handleCapitalDragStart = (event) => {
+  if (!capitalCategoryManager) {
+    return;
+  }
+  const subRow = event.target.closest(".subcategory-row");
+  const card = event.target.closest(".category-card");
+  if (subRow && capitalCategoryManager.contains(subRow)) {
+    event.dataTransfer.setData(
+      "text/plain",
+      JSON.stringify({
+        type: "capital-subcategory",
+        category: subRow.dataset.category,
+        subcategory: subRow.dataset.subcategory,
+      })
+    );
+    event.dataTransfer.effectAllowed = "move";
+    subRow.classList.add("is-dragging");
+    return;
+  }
+  if (card && capitalCategoryManager.contains(card)) {
+    event.dataTransfer.setData(
+      "text/plain",
+      JSON.stringify({
+        type: "capital-category",
+        category: card.dataset.category,
+      })
+    );
+    event.dataTransfer.effectAllowed = "move";
+    card.classList.add("is-dragging");
+  }
+};
+
+const handleCapitalDragEnd = (event) => {
+  if (!capitalCategoryManager) {
+    return;
+  }
+  const row = event.target.closest(".subcategory-row");
+  const card = event.target.closest(".category-card");
+  if (row) {
+    row.classList.remove("is-dragging");
+  }
+  if (card) {
+    card.classList.remove("is-dragging");
+  }
+  capitalCategoryManager
+    .querySelectorAll(".subcategory-list.is-drop-target, .category-dropzone.is-drop-target")
+    .forEach((list) => list.classList.remove("is-drop-target"));
+};
+
+const handleCapitalDragOver = (event) => {
+  const list = event.target.closest(".subcategory-list, .category-dropzone");
+  if (!list) {
+    return;
+  }
+  if (capitalCategoryManager && capitalCategoryManager.contains(list)) {
+    event.preventDefault();
+    list.classList.add("is-drop-target");
+    event.dataTransfer.dropEffect = "move";
+    return;
+  }
+  if (capitalRootDropzone && list === capitalRootDropzone) {
+    event.preventDefault();
+    list.classList.add("is-drop-target");
+    event.dataTransfer.dropEffect = "move";
+  }
+};
+
+const handleCapitalDragLeave = (event) => {
+  const list = event.target.closest(".subcategory-list, .category-dropzone");
+  if (list) {
+    list.classList.remove("is-drop-target");
+  }
+};
+
+const handleCapitalDrop = (event) => {
+  const list = event.target.closest(".subcategory-list");
+  const dropzone = event.target.closest(".category-dropzone");
+  event.preventDefault();
+
+  if (list) {
+    list.classList.remove("is-drop-target");
+  }
+  if (dropzone) {
+    dropzone.classList.remove("is-drop-target");
+  }
+
+  const payload = event.dataTransfer.getData("text/plain");
+  if (!payload) {
+    return;
+  }
+  const data = JSON.parse(payload);
+
+  if (list && capitalCategoryManager?.contains(list)) {
+    const targetCategory = list.dataset.capitalDropzone;
+    if (!targetCategory) {
+      return;
+    }
+    if (data.type === "capital-subcategory") {
+      moveCapitalSubcategory(data.category, data.subcategory, targetCategory);
+    }
+    if (data.type === "capital-category") {
+      moveCapitalCategoryToCategory(data.category, targetCategory);
+    }
+    return;
+  }
+
+  if (dropzone && capitalRootDropzone && dropzone === capitalRootDropzone) {
+    if (data.type === "capital-subcategory") {
+      promoteCapitalSubcategoryToCategory(data.category, data.subcategory);
+    }
+  }
+};
+
 const initializeReportRange = () => {
   const bounds = getDateBounds(transactions);
   if (bounds.end) {
@@ -4721,6 +4907,16 @@ on(rootDropzone, "dragover", handleDragOver, "dragover");
 on(rootDropzone, "dragleave", handleDragLeave, "dragleave");
 on(rootDropzone, "drop", handleDrop, "drop");
 on(rootDropzone, "dragend", handleDragEnd, "dragend");
+
+on(capitalCategoryManager, "dragstart", handleCapitalDragStart, "dragstart");
+on(capitalCategoryManager, "dragend", handleCapitalDragEnd, "dragend");
+on(capitalCategoryManager, "dragover", handleCapitalDragOver, "dragover");
+on(capitalCategoryManager, "dragleave", handleCapitalDragLeave, "dragleave");
+on(capitalCategoryManager, "drop", handleCapitalDrop, "drop");
+on(capitalRootDropzone, "dragover", handleCapitalDragOver, "dragover");
+on(capitalRootDropzone, "dragleave", handleCapitalDragLeave, "dragleave");
+on(capitalRootDropzone, "drop", handleCapitalDrop, "drop");
+on(capitalRootDropzone, "dragend", handleCapitalDragEnd, "dragend");
 
 on(undoButton, "click", undoLastAction, "undo");
 
