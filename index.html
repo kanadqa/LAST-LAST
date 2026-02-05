@@ -139,6 +139,7 @@
             <h2>Добавить операцию</h2>
             <p class="hint">Шаги: выберите тип → категорию → сумму → сохраните запись.</p>
             <form id="transactionForm" class="form transaction-form-grid">
+              <div class="form-zone-title">Параметры операции</div>
               <label>
                 Дата
                 <input type="date" id="date" required />
@@ -162,6 +163,7 @@
                 Подкатегория
                 <select id="subcategory"></select>
               </label>
+              <div class="form-zone-title">Финансы и комментарий</div>
               <label>
                 Валюта
                 <select id="currency">
@@ -174,8 +176,10 @@
               <label>
                 Сумма
                 <input type="number" id="amount" min="0" step="0.01" required />
-                <small id="amountCurrencyHint" class="hint"></small>
-                <small id="amountLastHint" class="hint"></small>
+                <div class="amount-hints">
+                  <small id="amountCurrencyHint" class="hint"></small>
+                  <small id="amountLastHint" class="hint"></small>
+                </div>
               </label>
               <label class="full">
                 Комментарий
@@ -188,6 +192,8 @@
           <section class="card">
             <h2>История операций</h2>
             <div class="transaction-toolbar">
+              <div class="toolbar-section">
+                <p class="toolbar-title">Быстрые фильтры</p>
               <div class="transaction-filters">
                 <label>
                   Поиск
@@ -207,8 +213,14 @@
                 </label>
                 <button id="transactionReset" class="button secondary small" type="button">Сбросить фильтры</button>
               </div>
-              <div id="transactionFavorites" class="favorite-chips"></div>
-              <div class="transaction-actions">
+              </div>
+              <div class="toolbar-section">
+                <p class="toolbar-title">Избранные категории</p>
+                <div id="transactionFavorites" class="favorite-chips"></div>
+              </div>
+              <div class="toolbar-section">
+                <p class="toolbar-title">Массовые действия</p>
+                <div class="transaction-actions">
                 <label class="checkbox">
                   <input id="transactionSelectAll" type="checkbox" />
                   Выбрать все на странице
@@ -216,8 +228,11 @@
                 <button id="transactionDeleteSelected" class="button danger small" type="button" disabled>Удалить выбранные</button>
                 <button id="transactionClearSelection" class="button secondary small" type="button" disabled>Снять выбор</button>
               </div>
-              <div id="transactionFilterChips" class="filter-chips"></div>
-              <p id="transactionCount" class="hint"></p>
+              </div>
+              <div class="transaction-context">
+                <div id="transactionFilterChips" class="filter-chips"></div>
+                <p id="transactionCount" class="hint"></p>
+              </div>
               <details class="filter-advanced">
                 <summary>Расширенные фильтры</summary>
                 <div class="transaction-filters advanced">
