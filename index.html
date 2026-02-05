@@ -9,6 +9,7 @@
 <body class="layout-comfort" data-page="main">
   <div class="app-shell">
     <aside class="sidebar">
+      <button id="sidebarClose" class="sidebar-close" type="button" aria-label="Закрыть меню">×</button>
       <div class="brand">
         <span class="brand-icon">₽</span>
         <div>
@@ -37,22 +38,31 @@
     </aside>
 
     <div class="app-content">
+      <div id="sidebarOverlay" class="sidebar-overlay"></div>
       <div id="errorBanner" class="error-banner is-hidden" role="alert"></div>
       <div id="selfTestPanel" class="selftest-panel is-hidden"></div>
       <header class="topbar">
-        <div>
+        <div class="topbar-title">
+          <button id="sidebarToggle" class="icon-button" type="button" aria-label="Открыть меню">☰</button>
           <h2 id="viewTitle">Обзор</h2>
           <p class="subtitle">Быстрый учет финансов с диаграммами и категориями.</p>
         </div>
         <div class="actions">
-          <button id="undoAction" class="button secondary">Отменить</button>
-          <button id="exportCsv" class="button secondary">Экспорт CSV</button>
-          <button id="backupJson" class="button secondary">Backup JSON</button>
-          <label class="button secondary">
+          <button id="undoAction" class="button secondary" data-action-scope="transactions">Отменить</button>
+          <button id="exportCsv" class="button secondary" data-action-scope="transactions reports">Экспорт CSV</button>
+          <label class="button secondary" data-action-scope="transactions">
+            Импорт CSV <span class="icon-hint" title="CSV: Дата, Тип, Категория, Подкатегория, Сумма, Валюта, Комментарий">ⓘ</span>
+            <input id="importCsv" type="file" accept=".csv,text/csv" hidden />
+          </label>
+          <button id="backupJson" class="button secondary" data-action-scope="all">Backup JSON</button>
+          <label class="button secondary" data-action-scope="all">
             Восстановить JSON
             <input id="restoreJson" type="file" accept="application/json" hidden />
           </label>
-          <button id="clearAll" class="button danger">Очистить все</button>
+          <button id="clearAll" class="button danger" data-action-scope="transactions">Очистить все</button>
+        </div>
+        <div class="actions-meta">
+          <p id="backupMeta" class="hint">Последний backup: —</p>
         </div>
       </header>
 
@@ -73,12 +83,14 @@
               <strong id="balance">0 ₽</strong>
             </div>
           </section>
+          <p id="summaryCurrencyNote" class="hint"></p>
 
           <section class="card">
             <h2>Диаграммы</h2>
             <div class="charts">
               <div class="chart-card">
                 <h3>Доходы по подкатегориям</h3>
+                <p id="incomeSubcategorySummary" class="chart-summary"></p>
                 <div id="incomeSubcategoryChart" class="chart"></div>
               </div>
               <div class="chart-card">
@@ -86,6 +98,7 @@
                   <h3>Расходы по категориям</h3>
                   <button id="toggleExpenseCategoryChart" class="chip">Показать все</button>
                 </div>
+                <p id="expenseCategorySummary" class="chart-summary"></p>
                 <div id="expenseCategoryChart" class="chart chart-scroll"></div>
               </div>
               <div class="chart-card">
@@ -93,6 +106,7 @@
                   <h3>Подкатегории (расходы)</h3>
                   <button id="toggleSubcategoryChart" class="chip">Показать все</button>
                 </div>
+                <p id="expenseSubcategorySummary" class="chart-summary"></p>
                 <div id="expenseSubcategoryChart" class="chart chart-scroll"></div>
               </div>
             </div>
@@ -103,14 +117,17 @@
             <div class="charts">
               <div class="chart-card">
                 <h3>Структура расходов по категориям</h3>
+                <p id="expensePieSummary" class="chart-summary"></p>
                 <div id="expensePie" class="chart"></div>
               </div>
               <div class="chart-card">
                 <h3>Структура расходов по подкатегориям</h3>
+                <p id="expenseSubcategoryPieSummary" class="chart-summary"></p>
                 <div id="expenseSubcategoryPie" class="chart"></div>
               </div>
               <div class="chart-card">
                 <h3>Структура доходов по подкатегориям</h3>
+                <p id="incomePieSummary" class="chart-summary"></p>
                 <div id="incomePie" class="chart"></div>
               </div>
             </div>
@@ -120,10 +137,16 @@
         <section class="view" data-view="transactions">
           <section class="card">
             <h2>Добавить операцию</h2>
-            <form id="transactionForm" class="form">
+            <p class="hint">Шаги: выберите тип → категорию → сумму → сохраните запись.</p>
+            <form id="transactionForm" class="form transaction-form-grid">
+              <div class="form-zone-title">Параметры операции</div>
               <label>
                 Дата
                 <input type="date" id="date" required />
+                <span class="date-quick">
+                  <button type="button" class="chip" data-date-quick="today">Сегодня</button>
+                  <button type="button" class="chip" data-date-quick="yesterday">Вчера</button>
+                </span>
               </label>
               <label>
                 Тип
@@ -140,9 +163,23 @@
                 Подкатегория
                 <select id="subcategory"></select>
               </label>
+              <div class="form-zone-title">Финансы и комментарий</div>
+              <label>
+                Валюта
+                <select id="currency">
+                  <option value="RUB">RUB</option>
+                  <option value="USD">USD</option>
+                  <option value="EUR">EUR</option>
+                  <option value="CNY">CNY</option>
+                </select>
+              </label>
               <label>
                 Сумма
                 <input type="number" id="amount" min="0" step="0.01" required />
+                <div class="amount-hints">
+                  <small id="amountCurrencyHint" class="hint"></small>
+                  <small id="amountLastHint" class="hint"></small>
+                </div>
               </label>
               <label class="full">
                 Комментарий
@@ -154,21 +191,105 @@
 
           <section class="card">
             <h2>История операций</h2>
+            <div class="transaction-toolbar">
+              <div class="toolbar-section">
+                <p class="toolbar-title">Быстрые фильтры</p>
+              <div class="transaction-filters">
+                <label>
+                  Поиск
+                  <input id="transactionSearch" type="search" placeholder="Категория, комментарий..." />
+                </label>
+                <label>
+                  Тип
+                  <select id="transactionTypeFilter">
+                    <option value="all">Все</option>
+                    <option value="income">Доходы</option>
+                    <option value="expense">Расходы</option>
+                  </select>
+                </label>
+                <label>
+                  Категория
+                  <select id="transactionCategoryFilter"></select>
+                </label>
+                <button id="transactionReset" class="button secondary small" type="button">Сбросить фильтры</button>
+              </div>
+              </div>
+              <div class="toolbar-section">
+                <p class="toolbar-title">Избранные категории</p>
+                <div id="transactionFavorites" class="favorite-chips"></div>
+              </div>
+              <div class="toolbar-section">
+                <p class="toolbar-title">Массовые действия</p>
+                <div class="transaction-actions">
+                <label class="checkbox">
+                  <input id="transactionSelectAll" type="checkbox" />
+                  Выбрать все на странице
+                </label>
+                <button id="transactionDeleteSelected" class="button danger small" type="button" disabled>Удалить выбранные</button>
+                <button id="transactionClearSelection" class="button secondary small" type="button" disabled>Снять выбор</button>
+              </div>
+              </div>
+              <div class="transaction-context">
+                <div id="transactionFilterChips" class="filter-chips"></div>
+                <p id="transactionCount" class="hint"></p>
+              </div>
+              <details class="filter-advanced">
+                <summary>Расширенные фильтры</summary>
+                <div class="transaction-filters advanced">
+                  <label>
+                    Период с
+                    <input id="transactionDateStart" type="date" />
+                  </label>
+                  <label>
+                    по
+                    <input id="transactionDateEnd" type="date" />
+                  </label>
+                  <label>
+                    Сортировка
+                    <select id="transactionSort">
+                      <option value="date">Дата</option>
+                      <option value="amount">Сумма</option>
+                    </select>
+                  </label>
+                  <button id="transactionSortDir" class="chip chip-toggle" type="button" aria-pressed="false">По убыв.</button>
+                  <label class="page-size">
+                    На странице
+                    <select id="transactionPageSize">
+                      <option value="10">10</option>
+                      <option value="25">25</option>
+                      <option value="50">50</option>
+                    </select>
+                  </label>
+                </div>
+              </details>
+            </div>
+            <div class="section-divider"></div>
             <div class="table-wrapper">
               <table>
                 <thead>
                   <tr>
+                    <th>
+                      <span class="sr-only">Выбор</span>
+                    </th>
                     <th>Дата</th>
                     <th>Тип</th>
                     <th>Категория</th>
                     <th>Подкатегория</th>
-                    <th>Сумма</th>
+                    <th>Сумма <span class="icon-hint" title="Суммы в валюте операции. Итоги приводятся к базовой валюте.">ⓘ</span></th>
+                    <th>Валюта</th>
                     <th>Комментарий</th>
                     <th></th>
                   </tr>
                 </thead>
                 <tbody id="transactionTable"></tbody>
               </table>
+            </div>
+            <div class="transaction-pagination">
+              <div class="page-controls">
+                <button id="transactionPrev" class="button secondary small" type="button">Назад</button>
+                <span id="transactionPageInfo" class="hint">Страница 1</span>
+                <button id="transactionNext" class="button secondary small" type="button">Вперед</button>
+              </div>
             </div>
             <p class="hint">Данные сохраняются в локальном хранилище браузера. Для переноса используйте экспорт CSV.</p>
           </section>
@@ -212,20 +333,24 @@
               </div>
 
               <div class="category-panel" data-category-panel="capital">
-                <h3>Категории активов</h3>
-                <p class="hint">Категории и подкатегории капитала задаются вручную.</p>
-                <form id="capitalCategoryForm" class="form compact-form">
+                <div class="category-header">
+                  <div>
+                    <h3>Категории капитала</h3>
+                    <p class="hint">Настройте категории активов по аналогии с обычными категориями.</p>
+                  </div>
+                </div>
+                <form id="capitalCategoryForm" class="form two-columns">
                   <label>
                     Категория
                     <input type="text" id="capitalCategoryName" placeholder="Например, Вклад" required />
                   </label>
                   <label>
-                    Подкатегория
+                    Подкатегория (опционально)
                     <input type="text" id="capitalSubcategoryName" placeholder="Например, Сбербанк" />
                   </label>
-                  <button type="submit" class="button secondary">Добавить</button>
+                  <button class="button secondary" type="submit">Добавить</button>
                 </form>
-                <div id="capitalCategoryManager" class="capital-category-list"></div>
+                <p class="hint">Категории и подкатегории капитала задаются вручную.</p>
               </div>
             </div>
           </section>
@@ -246,6 +371,18 @@
               Категории верхнего уровня
             </div>
             <div id="categoryManager" class="category-manager"></div>
+          </section>
+          <section class="card category-panel" data-category-panel="capital">
+            <div class="category-header">
+              <div>
+                <h2>Управление категориями капитала</h2>
+                <p class="hint">Добавляйте, удаляйте и поддерживайте структуру активов.</p>
+              </div>
+            </div>
+            <div class="category-dropzone" data-capital-dropzone-root>
+              Категории верхнего уровня
+            </div>
+            <div id="capitalCategoryManager" class="category-manager capital-category-list"></div>
           </section>
         </section>
 
@@ -293,7 +430,14 @@
               <span>Операций</span>
               <strong id="reportTransactionsCount">0</strong>
             </div>
+            <div class="summary-card neutral">
+              <span>Сравнение с прошлым периодом</span>
+              <strong id="reportComparison">—</strong>
+              <small id="reportComparisonDetail" class="summary-subtitle"></small>
+            </div>
           </section>
+          <p id="reportCurrencyNote" class="hint"></p>
+          <p id="reportInsight" class="hint"></p>
 
           <section class="card report-grid">
             <div class="report-chart-card report-span">
@@ -301,9 +445,12 @@
                 <h3>Динамика</h3>
                 <div class="chip-group">
                   <button class="chip is-active" data-report-granularity="daily">По дням</button>
+                  <button class="chip" data-report-granularity="weekly">По неделям</button>
                   <button class="chip" data-report-granularity="monthly">По месяцам</button>
+                  <button class="chip" data-report-granularity="quarterly">По кварталам</button>
                 </div>
               </div>
+              <p id="reportLineSummary" class="chart-summary"></p>
               <div class="line-chart">
                 <svg id="reportLineChart" viewBox="0 0 720 260" aria-label="График доходов и расходов"></svg>
                 <div class="line-legend">
@@ -314,14 +461,17 @@
             </div>
             <div class="report-chart-card report-full">
               <h3>Структура расходов по категориям</h3>
+              <p id="reportExpenseCategoriesSummary" class="chart-summary"></p>
               <div id="reportExpenseCategories" class="chart"></div>
             </div>
             <div class="report-chart-card report-full">
               <h3>Структура расходов по подкатегориям</h3>
+              <p id="reportExpenseSubcategoriesSummary" class="chart-summary"></p>
               <div id="reportExpenseSubcategories" class="chart"></div>
             </div>
             <div class="report-chart-card report-full">
               <h3>Структура доходов по подкатегориям</h3>
+              <p id="reportIncomeSubcategoriesSummary" class="chart-summary"></p>
               <div id="reportIncomeSubcategories" class="chart"></div>
             </div>
           </section>
@@ -469,6 +619,7 @@
                       </select>
                     </label>
                     <button id="capitalAssetSortDir" class="chip chip-toggle" type="button" aria-pressed="false">По убыв.</button>
+                    <button id="capitalAssetMissingRate" class="chip chip-toggle" type="button" aria-pressed="false">Без курса</button>
                   </div>
 
                   <div class="asset-summary">
@@ -785,6 +936,37 @@
     </div>
   </div>
 
+  <script src="utils.js"></script>
   <script src="app.js"></script>
+  <script>
+    window.addEventListener("DOMContentLoaded", () => {
+      setTimeout(() => {
+        if (window.__appBooted) {
+          return;
+        }
+        const navLinks = document.querySelectorAll("[data-view-target]");
+        const views = document.querySelectorAll("[data-view]");
+        const viewTitle = document.getElementById("viewTitle");
+        const setView = (viewId) => {
+          views.forEach((view) => {
+            view.classList.toggle("is-active", view.dataset.view === viewId);
+          });
+          navLinks.forEach((link) => {
+            link.classList.toggle("is-active", link.dataset.viewTarget === viewId);
+          });
+          const activeLabel = [...navLinks].find((link) => link.dataset.viewTarget === viewId);
+          if (activeLabel && viewTitle) {
+            viewTitle.textContent = activeLabel.textContent;
+          }
+        };
+        navLinks.forEach((link) => {
+          link.addEventListener("click", (event) => {
+            event.preventDefault();
+            setView(link.dataset.viewTarget);
+          });
+        });
+      }, 500);
+    });
+  </script>
 </body>
 </html>
