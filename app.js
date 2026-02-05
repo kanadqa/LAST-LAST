@@ -2753,6 +2753,86 @@ const capitalEnsureCategory = (name, subcategory = "") => {
   }
 };
 
+const renameCapitalCategory = (currentName, nextName) => {
+  const trimmed = nextName.trim();
+  if (!trimmed) {
+    showError("Название категории не может быть пустым.");
+    return;
+  }
+  if (capitalState.assetCategories.some((category) => category.name === trimmed)) {
+    showError("Категория с таким именем уже существует.");
+    return;
+  }
+  const category = capitalState.assetCategories.find((item) => item.name === currentName);
+  if (!category) {
+    return;
+  }
+  category.name = trimmed;
+  capitalState.assets.forEach((asset) => {
+    if (asset.category === currentName) {
+      asset.category = trimmed;
+    }
+  });
+  saveCapitalV2(capitalState);
+  renderCapitalCategories();
+  renderCapitalAssets();
+};
+
+const renameCapitalSubcategory = (categoryName, currentName, nextName) => {
+  const trimmed = nextName.trim();
+  if (!trimmed) {
+    showError("Название подкатегории не может быть пустым.");
+    return;
+  }
+  const category = capitalState.assetCategories.find((item) => item.name === categoryName);
+  if (!category) {
+    return;
+  }
+  if (category.subs.includes(trimmed)) {
+    showError("Подкатегория с таким именем уже существует.");
+    return;
+  }
+  category.subs = category.subs.map((sub) => (sub === currentName ? trimmed : sub));
+  capitalState.assets.forEach((asset) => {
+    if (asset.category === categoryName && asset.subcategory === currentName) {
+      asset.subcategory = trimmed;
+    }
+  });
+  saveCapitalV2(capitalState);
+  renderCapitalCategories();
+  renderCapitalAssets();
+};
+
+const deleteCapitalCategory = (categoryName) => {
+  const fallback = "Без категории";
+  capitalState.assetCategories = capitalState.assetCategories.filter((category) => category.name !== categoryName);
+  capitalState.assets.forEach((asset) => {
+    if (asset.category === categoryName) {
+      asset.category = fallback;
+    }
+  });
+  capitalEnsureCategory(fallback);
+  saveCapitalV2(capitalState);
+  renderCapitalCategories();
+  renderCapitalAssets();
+};
+
+const deleteCapitalSubcategory = (categoryName, subcategoryName) => {
+  const category = capitalState.assetCategories.find((item) => item.name === categoryName);
+  if (!category) {
+    return;
+  }
+  category.subs = category.subs.filter((sub) => sub !== subcategoryName);
+  capitalState.assets.forEach((asset) => {
+    if (asset.category === categoryName && asset.subcategory === subcategoryName) {
+      asset.subcategory = "";
+    }
+  });
+  saveCapitalV2(capitalState);
+  renderCapitalCategories();
+  renderCapitalAssets();
+};
+
 const renderCapitalCategories = () => {
   if (!capitalCategoryManager) {
     return;
@@ -2769,29 +2849,85 @@ const renderCapitalCategories = () => {
     });
 
     const card = document.createElement("div");
-    card.className = "capital-category-card";
-    card.innerHTML = `
-      <div class="capital-category-title">
-        <span>${category.name}</span>
-        <button class="button secondary" data-capital-category-delete="${category.name}">Удалить</button>
-      </div>
-    `;
-    const subs = document.createElement("div");
-    subs.className = "capital-category-subs";
+    card.className = "category-card";
+    card.dataset.category = category.name;
+
+    const header = document.createElement("div");
+    header.className = "category-card-header";
+
+    const title = document.createElement("div");
+    title.innerHTML = `<strong>${category.name}</strong><span>${category.subs.length} подкатегорий</span>`;
+
+    const badge = document.createElement("span");
+    badge.className = "type-badge capital";
+    badge.textContent = "Капитал";
+
+    const actions = document.createElement("div");
+    actions.className = "category-actions";
+
+    const renameBtn = document.createElement("button");
+    renameBtn.className = "chip";
+    renameBtn.textContent = "Переименовать";
+    renameBtn.dataset.capitalAction = "rename-category";
+    renameBtn.dataset.capitalCategory = category.name;
+
+    const deleteBtn = document.createElement("button");
+    deleteBtn.className = "chip danger";
+    deleteBtn.textContent = "Удалить";
+    deleteBtn.dataset.capitalAction = "delete-category";
+    deleteBtn.dataset.capitalCategory = category.name;
+
+    actions.appendChild(renameBtn);
+    actions.appendChild(deleteBtn);
+    header.appendChild(title);
+    header.appendChild(badge);
+    header.appendChild(actions);
+
+    const list = document.createElement("div");
+    list.className = "subcategory-list";
+
     if (!category.subs.length) {
-      subs.innerHTML = "<span class='hint'>Подкатегории не добавлены.</span>";
-    } else {
-      category.subs.forEach((sub) => {
-        const pill = document.createElement("span");
-        pill.className = "capital-subcategory";
-        pill.innerHTML = `
-          ${sub}
-          <button class="button secondary" data-capital-subcategory-delete="${category.name}" data-subcategory="${sub}">×</button>
-        `;
-        subs.appendChild(pill);
-      });
+      const empty = document.createElement("p");
+      empty.className = "hint";
+      empty.textContent = "Нет подкатегорий";
+      list.appendChild(empty);
     }
-    card.appendChild(subs);
+
+    category.subs.forEach((sub) => {
+      const row = document.createElement("div");
+      row.className = "subcategory-row";
+      row.dataset.category = category.name;
+      row.dataset.subcategory = sub;
+
+      const name = document.createElement("span");
+      name.textContent = sub;
+
+      const tools = document.createElement("div");
+      tools.className = "subcategory-tools";
+
+      const editBtn = document.createElement("button");
+      editBtn.className = "chip";
+      editBtn.textContent = "Редактировать";
+      editBtn.dataset.capitalAction = "rename-subcategory";
+      editBtn.dataset.capitalCategory = category.name;
+      editBtn.dataset.capitalSubcategory = sub;
+
+      const removeBtn = document.createElement("button");
+      removeBtn.className = "chip danger";
+      removeBtn.textContent = "Удалить";
+      removeBtn.dataset.capitalAction = "delete-subcategory";
+      removeBtn.dataset.capitalCategory = category.name;
+      removeBtn.dataset.capitalSubcategory = sub;
+
+      tools.appendChild(editBtn);
+      tools.appendChild(removeBtn);
+      row.appendChild(name);
+      row.appendChild(tools);
+      list.appendChild(row);
+    });
+
+    card.appendChild(header);
+    card.appendChild(list);
     capitalCategoryManager.appendChild(card);
   });
 };
@@ -4914,28 +5050,39 @@ onAll(capitalTabs, "click", (event) => {
   }, "категории капитала");
 
   on(capitalCategoryManager, "click", (event) => {
-    const target = event.target;
-    if (!(target instanceof HTMLButtonElement)) {
+    const target = event.target.closest("button[data-capital-action]");
+    if (!target) {
       return;
     }
-    const categoryName = target.dataset.capitalCategoryDelete;
-    const subcategoryName = target.dataset.subcategory;
-    if (categoryName && !subcategoryName) {
-      capitalState.assetCategories = capitalState.assetCategories.filter((category) => category.name !== categoryName);
-      saveCapitalV2(capitalState);
-      renderCapitalCategories();
-      return;
-    }
-    if (categoryName && subcategoryName) {
-      const category = capitalState.assetCategories.find((item) => item.name === categoryName);
-      if (!category) {
-        return;
+    const action = target.dataset.capitalAction;
+    const categoryName = target.dataset.capitalCategory;
+    const subcategoryName = target.dataset.capitalSubcategory;
+    if (action === "rename-category" && categoryName) {
+      const nextName = prompt("Новое имя категории", categoryName);
+      if (nextName) {
+        renameCapitalCategory(categoryName, nextName);
       }
-      category.subs = category.subs.filter((sub) => sub !== subcategoryName);
-      saveCapitalV2(capitalState);
-      renderCapitalCategories();
+      return;
     }
-  }, "удаление категории капитала");
+    if (action === "delete-category" && categoryName) {
+      if (confirm(`Удалить категорию «${categoryName}»?`)) {
+        deleteCapitalCategory(categoryName);
+      }
+      return;
+    }
+    if (action === "rename-subcategory" && categoryName && subcategoryName) {
+      const nextName = prompt("Новое имя подкатегории", subcategoryName);
+      if (nextName) {
+        renameCapitalSubcategory(categoryName, subcategoryName, nextName);
+      }
+      return;
+    }
+    if (action === "delete-subcategory" && categoryName && subcategoryName) {
+      if (confirm(`Удалить подкатегорию «${subcategoryName}»?`)) {
+        deleteCapitalSubcategory(categoryName, subcategoryName);
+      }
+    }
+  }, "категории капитала");
 
   onAll(capitalOverviewFilters, "click", (event) => {
     capitalOverviewFilters.forEach((item) => item.classList.remove("is-active"));

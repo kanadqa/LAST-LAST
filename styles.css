@@ -806,6 +806,11 @@ td {
   color: var(--income);
 }
 
+.type-badge.capital {
+  background: rgba(59, 130, 246, 0.12);
+  color: #1d4ed8;
+}
+
 .category-actions {
   display: flex;
   gap: 8px;
