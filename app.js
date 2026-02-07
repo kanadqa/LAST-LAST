@@ -99,11 +99,7 @@ const capitalAssetType = document.getElementById("capitalAssetType");
 const capitalAssetCurrency = document.getElementById("capitalAssetCurrency");
 const capitalAssetAmount = document.getElementById("capitalAssetAmount");
 const capitalAssetInvested = document.getElementById("capitalAssetInvested");
-const capitalAssetSubcategory = document.getElementById("capitalAssetSubcategory");
-const capitalAssetIcon = document.getElementById("capitalAssetIcon");
-const capitalAssetAvatar = document.getElementById("capitalAssetAvatar");
-const capitalAssetAvatarRemove = document.getElementById("capitalAssetAvatarRemove");
-const capitalSubcategoryList = document.getElementById("capitalSubcategoryList");
+const capitalSubcategorySelect = document.getElementById("capitalAssetSubcategory");
 const capitalAssetMaturityDate = document.getElementById("capitalAssetMaturityDate");
 const capitalAssetLiquidity = document.getElementById("capitalAssetLiquidity");
 const capitalAssetExpectedProfit = document.getElementById("capitalAssetExpectedProfit");
@@ -122,6 +118,18 @@ const editCategoryInput = document.getElementById("editCategory");
 const editSubcategoryInput = document.getElementById("editSubcategory");
 const editAmountInput = document.getElementById("editAmount");
 const editNoteInput = document.getElementById("editNote");
+
+const ensureFloatingTransactionEditModal = () => {
+  if (!transactionEditOverlay || !transactionEditModal) {
+    return;
+  }
+  if (transactionEditOverlay.parentElement !== document.body) {
+    document.body.appendChild(transactionEditOverlay);
+  }
+  if (transactionEditModal.parentElement !== document.body) {
+    document.body.appendChild(transactionEditModal);
+  }
+};
 const selfTestPanel = document.getElementById("selfTestPanel");
 const capitalAssetsList = document.getElementById("capitalAssetsList");
 const capitalAssetSearch = document.getElementById("capitalAssetSearch");
@@ -566,7 +574,6 @@ const assetFilters = {
   sort: "amount",
   direction: "desc",
 };
-let capitalAssetAvatarDataUrl = "";
 let assetUiState = { groups: {}, subgroups: {} };
 
 const persistAssetUiState = () => Storage.set(CAPITAL_ASSETS_UI_KEY, JSON.stringify(assetUiState));
@@ -2478,21 +2485,33 @@ const promoteCapitalSubcategoryToCategory = (fromCategory, subName) => {
   saveAndRenderCapitalCategories();
 };
 
+const renderCapitalSubcategoryOptions = (preferred = "") => {
+  if (!capitalSubcategorySelect) {
+    return;
+  }
+  const resolvedCategory = capitalTypeLabel(capitalAssetType?.value || "");
+  const category = findCapitalCategory(resolvedCategory);
+  const subcategories = [...(category?.subs || [])].sort((a, b) => a.localeCompare(b, "ru"));
+
+  capitalSubcategorySelect.innerHTML = '<option value="">Без подкатегории</option>';
+  subcategories.forEach((sub) => {
+    const option = document.createElement("option");
+    option.value = sub;
+    option.textContent = sub;
+    capitalSubcategorySelect.appendChild(option);
+  });
+
+  capitalSubcategorySelect.value = subcategories.includes(preferred) ? preferred : "";
+};
+
 const renderCapitalCategories = () => {
   if (!capitalCategoryManager || !capitalState) {
     return;
   }
   capitalCategoryManager.innerHTML = "";
-  capitalSubcategoryList.innerHTML = "";
 
   const sorted = capitalizeAssetCategories();
   sorted.forEach((category) => {
-    category.subs.forEach((sub) => {
-      const subOption = document.createElement("option");
-      subOption.value = sub;
-      capitalSubcategoryList.appendChild(subOption);
-    });
-
     const subs = category.subs || [];
     const card = document.createElement("div");
     card.className = "category-card capital-category-card";
@@ -3339,15 +3358,8 @@ const capitalResetAssetForm = () => {
   capitalAssetForm.reset();
   capitalAssetCurrency.value = capitalState.settings.baseCurrency;
   capitalAssetMaturityDate.value = "";
-  capitalAssetSubcategory.value = "";
   capitalAssetExpectedProfit.value = "";
-  if (capitalAssetIcon) {
-    capitalAssetIcon.value = "";
-  }
-  if (capitalAssetAvatar) {
-    capitalAssetAvatar.value = "";
-  }
-  capitalAssetAvatarDataUrl = "";
+  renderCapitalSubcategoryOptions();
   capitalEditingAssetId = null;
   const submitButton = capitalAssetForm.querySelector('button[type="submit"]');
   if (submitButton) {
@@ -3369,15 +3381,11 @@ const capitalFillAssetForm = (asset) => {
   capitalAssetCurrency.value = asset.currency || capitalState.settings.baseCurrency;
   capitalAssetAmount.value = asset.amount ?? 0;
   capitalAssetInvested.value = asset.invested ?? asset.amount ?? 0;
-  capitalAssetSubcategory.value = asset.subcategory || "";
+  renderCapitalSubcategoryOptions(asset.subcategory || "");
   capitalAssetMaturityDate.value = asset.maturityDate || "";
   capitalAssetLiquidity.value = asset.liquidity || "high";
   capitalAssetExpectedProfit.value = asset.expectedProfit ?? "";
   capitalAssetNote.value = asset.note || "";
-  if (capitalAssetIcon) {
-    capitalAssetIcon.value = asset.icon || "";
-  }
-  capitalAssetAvatarDataUrl = asset.avatarDataUrl || "";
   capitalEditingAssetId = asset.id;
   const submitButton = capitalAssetForm.querySelector('button[type="submit"]');
   if (submitButton) {
@@ -3403,7 +3411,7 @@ const capitalAddAsset = () => {
     showError("Заполните название и сумму актива.");
     return;
   }
-  const subcategoryValue = capitalAssetSubcategory.value.trim();
+  const subcategoryValue = capitalSubcategorySelect ? capitalSubcategorySelect.value.trim() : "";
   const isDeposit = capitalAssetType.value === "deposit";
   const amountParsed = Number.parseFloat(amountInput);
   const amount = Number.isNaN(amountParsed) ? invested : amountParsed;
@@ -3426,8 +3434,8 @@ const capitalAddAsset = () => {
       : null,
     maturityDate: isDeposit ? capitalAssetMaturityDate.value : "",
     note: capitalAssetNote.value.trim(),
-    icon: capitalAssetIcon ? capitalAssetIcon.value.trim() : "",
-    avatarDataUrl: capitalAssetAvatarDataUrl || "",
+    icon: capitalDefaultIcon(capitalAssetType.value),
+    avatarDataUrl: "",
   };
   if (capitalEditingAssetId) {
     const existing = capitalState.assets.find((item) => item.id === capitalEditingAssetId);
@@ -4360,20 +4368,6 @@ onAll(capitalTabs, "click", (event) => {
     capitalResetAssetForm();
   }, "overlay asset");
 
-  on(capitalAssetAvatar, "change", async (event) => {
-    const file = event.target.files?.[0];
-    if (!file) {
-      return;
-    }
-    capitalAssetAvatarDataUrl = await compressImageToDataUrl(file);
-  }, "avatar upload");
-
-  on(capitalAssetAvatarRemove, "click", () => {
-    capitalAssetAvatarDataUrl = "";
-    if (capitalAssetAvatar) {
-      capitalAssetAvatar.value = "";
-    }
-  }, "avatar remove");
 
   on(document, "keydown", (event) => {
     if (event.key !== "Escape") {
@@ -4533,6 +4527,7 @@ onAll(capitalTabs, "click", (event) => {
       capitalAssetExpectedProfit.value = "";
       capitalAssetMaturityDate.value = "";
     }
+    renderCapitalSubcategoryOptions();
   }, "тип актива");
 
   on(capitalAssetSearch, "input", (event) => {
@@ -4837,8 +4832,10 @@ const initializeApp = safeExec(async () => {
   await Storage.init();
   await loadState();
 
+  ensureFloatingTransactionEditModal();
   bindEvents();
   renderCategories();
+  renderCapitalSubcategoryOptions();
   await renderBackupMeta();
   resetForm();
   initializeReportRange();

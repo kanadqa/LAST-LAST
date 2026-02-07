@@ -428,11 +428,6 @@
           <section class="capital-tab" data-capital-tab-panel="assets">
             <section class="card capital-grid">
               <div class="capital-card capital-full">
-                <h3>Добавить активы</h3>
-                <p class="hint">Быстро фиксируйте вклад/инвестицию: сколько вложили и сколько сейчас.</p>
-              </div>
-
-              <div class="capital-card capital-full">
                 <div class="asset-list-shell">
                   <div class="asset-list-header">
                     <h3>Список активов</h3>
@@ -516,18 +511,8 @@
                 </select>
               </label>
               <label>
-                Иконка
-                <input type="text" id="capitalAssetIcon" placeholder="Например, 🏦" maxlength="2" />
-              </label>
-              <label>
-                Фото
-                <input type="file" id="capitalAssetAvatar" accept="image/*" />
-              </label>
-              <button id="capitalAssetAvatarRemove" type="button" class="button secondary small">Удалить фото</button>
-              <label>
                 Подкатегория
-                <input type="text" id="capitalAssetSubcategory" list="capitalSubcategoryList" placeholder="Например, Сбербанк" />
-                <datalist id="capitalSubcategoryList"></datalist>
+                <select id="capitalAssetSubcategory"></select>
               </label>
               <label>
                 Валюта
