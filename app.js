@@ -1778,6 +1778,22 @@ const capitalToBase = (value, currency) => {
   return value * rate;
 };
 
+const assetValueInBase = (asset, field) => {
+  const value = field === "invested" ? (asset.invested ?? asset.amount ?? 0) : asset.amount;
+  const converted = capitalToBase(value, asset.currency);
+  if (converted == null && capitalIsUnconvertible(asset)) {
+    return null;
+  }
+  return converted ?? value;
+};
+
+const getProfitMeta = (amount, invested) => {
+  const profit = amount - invested;
+  const percent = invested > 0 ? (profit / invested) * 100 : null;
+  const isValid = Number.isFinite(percent) && Math.abs(percent) <= 999;
+  return { profit, percent: isValid ? percent : null, needsCheck: !isValid };
+};
+
 const capitalFxEndpoint = "https://api.exchangerate.host";
 
 const capitalFetchRate = async (base, currency) => {
@@ -2701,22 +2717,6 @@ const renderCapitalAssets = () => {
   if (capitalAssetSearch) {
     capitalAssetSearch.value = assetFilters.search;
   }
-
-  const assetValueInBase = (asset, field) => {
-    const value = field === "invested" ? (asset.invested ?? asset.amount ?? 0) : asset.amount;
-    const converted = capitalToBase(value, asset.currency);
-    if (converted == null && capitalIsUnconvertible(asset)) {
-      return null;
-    }
-    return converted ?? value;
-  };
-
-  const getProfitMeta = (amount, invested) => {
-    const profit = amount - invested;
-    const percent = invested > 0 ? (profit / invested) * 100 : null;
-    const isValid = Number.isFinite(percent) && Math.abs(percent) <= 999;
-    return { profit, percent: isValid ? percent : null, needsCheck: !isValid };
-  };
 
   const filterAssets = items.filter((asset) => {
     if (assetFilters.type !== "all" && asset.type !== assetFilters.type) {
