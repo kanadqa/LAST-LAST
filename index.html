@@ -82,19 +82,18 @@
           </section>
 
           <section class="card">
-            <h2>Круговые диаграммы</h2>
+            <div class="chart-title">
+              <h2>Круговые диаграммы</h2>
+              <button id="toggleExpenseSubcategoryPie" class="chip">Подробнее</button>
+            </div>
             <div class="charts">
               <div class="chart-card">
                 <h3>Структура расходов по категориям</h3>
                 <div id="expensePie" class="chart"></div>
               </div>
-              <div class="chart-card">
+              <div id="expenseSubcategoryPiePanel" class="chart-card is-hidden">
                 <h3>Структура расходов по подкатегориям</h3>
                 <div id="expenseSubcategoryPie" class="chart"></div>
-              </div>
-              <div class="chart-card">
-                <h3>Структура доходов по подкатегориям</h3>
-                <div id="incomePie" class="chart"></div>
               </div>
             </div>
           </section>
@@ -283,6 +282,12 @@
               </div>
             </div>
             <div class="report-range">
+              <label>
+                Месяц
+                <select id="reportMonthSelect">
+                  <option value="">Выбрать месяц</option>
+                </select>
+              </label>
               <label>
                 С
                 <input type="date" id="reportStart" />
@@ -563,6 +568,45 @@
                 <input type="text" id="capitalAssetNote" placeholder="Опционально" />
               </label>
               <button type="submit" class="button primary">Добавить актив</button>
+            </form>
+          </div>
+
+
+          <div id="transactionEditOverlay" class="capital-asset-overlay"></div>
+          <div id="transactionEditModal" class="transaction-edit-modal" aria-hidden="true">
+            <div class="transaction-edit-header">
+              <h3>Редактировать операцию</h3>
+              <button id="transactionEditClose" type="button" class="button secondary">Закрыть</button>
+            </div>
+            <form id="transactionEditForm" class="form compact-form">
+              <label>
+                Дата
+                <input type="date" id="editDate" required />
+              </label>
+              <label>
+                Тип
+                <select id="editType" required>
+                  <option value="income">Доход</option>
+                  <option value="expense">Расход</option>
+                </select>
+              </label>
+              <label>
+                Категория
+                <input type="text" id="editCategory" required />
+              </label>
+              <label>
+                Подкатегория
+                <input type="text" id="editSubcategory" />
+              </label>
+              <label>
+                Сумма
+                <input type="number" id="editAmount" min="0" step="0.01" required />
+              </label>
+              <label class="full">
+                Комментарий
+                <input type="text" id="editNote" />
+              </label>
+              <button type="submit" class="button primary">Сохранить изменения</button>
             </form>
           </div>
 

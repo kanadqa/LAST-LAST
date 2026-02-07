@@ -32,6 +32,8 @@ const toggleSubcategoryButton = document.getElementById("toggleSubcategoryChart"
 const toggleExpenseCategoryButton = document.getElementById("toggleExpenseCategoryChart");
 const expensePie = document.getElementById("expensePie");
 const expenseSubcategoryPie = document.getElementById("expenseSubcategoryPie");
+const toggleExpenseSubcategoryPieButton = document.getElementById("toggleExpenseSubcategoryPie");
+const expenseSubcategoryPiePanel = document.getElementById("expenseSubcategoryPiePanel");
 const incomePie = document.getElementById("incomePie");
 const reportLineChart = document.getElementById("reportLineChart");
 const reportChartTooltip = document.getElementById("reportChartTooltip");
@@ -45,6 +47,7 @@ const layoutButtons = document.querySelectorAll("[data-layout]");
 const reportStartInput = document.getElementById("reportStart");
 const reportEndInput = document.getElementById("reportEnd");
 const applyReportRangeButton = document.getElementById("applyReportRange");
+const reportMonthSelect = document.getElementById("reportMonthSelect");
 const reportRangeButtons = document.querySelectorAll("[data-report-range]");
 const reportGranularityButtons = document.querySelectorAll("[data-report-granularity]");
 const reportIncomeEl = document.getElementById("reportIncome");
@@ -109,6 +112,16 @@ const capitalAssetClose = document.getElementById("capitalAssetClose");
 const capitalAssetDelete = document.getElementById("capitalAssetDelete");
 const capitalAssetDrawerTitle = document.getElementById("capitalAssetDrawerTitle");
 const toast = document.getElementById("toast");
+const transactionEditOverlay = document.getElementById("transactionEditOverlay");
+const transactionEditModal = document.getElementById("transactionEditModal");
+const transactionEditForm = document.getElementById("transactionEditForm");
+const transactionEditClose = document.getElementById("transactionEditClose");
+const editDateInput = document.getElementById("editDate");
+const editTypeInput = document.getElementById("editType");
+const editCategoryInput = document.getElementById("editCategory");
+const editSubcategoryInput = document.getElementById("editSubcategory");
+const editAmountInput = document.getElementById("editAmount");
+const editNoteInput = document.getElementById("editNote");
 const selfTestPanel = document.getElementById("selfTestPanel");
 const capitalAssetsList = document.getElementById("capitalAssetsList");
 const capitalAssetSearch = document.getElementById("capitalAssetSearch");
@@ -538,6 +551,8 @@ let categoryFilter = "all";
 let reportGranularity = "daily";
 let transactionFilters = { search: "", type: "all", category: "all" };
 let selectedTransactionIds = new Set();
+let showExpenseSubcategoryPieDetails = false;
+let editingTransactionId = null;
 let reportRange = { start: "", end: "" };
 let capitalState = null;
 let capitalOverviewFilter = "all";
@@ -875,56 +890,57 @@ const renderTable = () => {
   }
 };
 
-const editTransaction = (id) => {
-  const index = transactions.findIndex((item) => item.id === id);
+const setTransactionEditModal = (isOpen) => {
+  if (!transactionEditModal || !transactionEditOverlay) {
+    return;
+  }
+  transactionEditModal.classList.toggle("is-open", isOpen);
+  transactionEditModal.setAttribute("aria-hidden", String(!isOpen));
+  transactionEditOverlay.classList.toggle("is-active", isOpen);
+};
+
+const openEditTransactionModal = (id) => {
+  const current = transactions.find((item) => item.id === id);
+  if (!current) {
+    return;
+  }
+  editingTransactionId = id;
+  editDateInput.value = current.date;
+  editTypeInput.value = current.type;
+  editCategoryInput.value = current.category;
+  editSubcategoryInput.value = current.subcategory || "";
+  editAmountInput.value = String(current.amount);
+  editNoteInput.value = current.note || "";
+  setTransactionEditModal(true);
+};
+
+const saveEditedTransaction = () => {
+  if (!editingTransactionId) {
+    return;
+  }
+  const index = transactions.findIndex((item) => item.id === editingTransactionId);
   if (index === -1) {
     return;
   }
+  const amount = Number.parseFloat(editAmountInput.value);
+  if (!editDateInput.value || !editCategoryInput.value.trim() || !Number.isFinite(amount) || amount <= 0) {
+    showError("Заполните дату, категорию и сумму больше нуля.");
+    return;
+  }
   const current = transactions[index];
-  const date = prompt("Дата (ГГГГ-ММ-ДД)", current.date);
-  if (date === null) {
-    return;
-  }
-  const type = prompt("Тип операции: income или expense", current.type);
-  if (type === null) {
-    return;
-  }
-  const normalizedType = type.trim().toLowerCase();
-  if (!["income", "expense"].includes(normalizedType)) {
-    showError("Тип операции должен быть income или expense.");
-    return;
-  }
-  const category = prompt("Категория", current.category);
-  if (category === null || !category.trim()) {
-    showError("Категория не может быть пустой.");
-    return;
-  }
-  const subcategory = prompt("Подкатегория (опционально)", current.subcategory || "") || "";
-  const amountRaw = prompt("Сумма", String(current.amount));
-  if (amountRaw === null) {
-    return;
-  }
-  const amount = Number.parseFloat(amountRaw.replace(",", "."));
-  if (!Number.isFinite(amount) || amount <= 0) {
-    showError("Сумма должна быть больше 0.");
-    return;
-  }
-  const note = prompt("Комментарий", current.note || "");
-  if (note === null) {
-    return;
-  }
-
   const before = { ...current };
   transactions[index] = touchTransaction(current, {
-    date: date.trim(),
-    type: normalizedType,
-    category: category.trim(),
-    subcategory: subcategory.trim(),
+    date: editDateInput.value,
+    type: editTypeInput.value,
+    category: editCategoryInput.value.trim(),
+    subcategory: editSubcategoryInput.value.trim(),
     amount,
-    note: note.trim(),
+    note: editNoteInput.value.trim(),
   });
   recordUndo("editTx", { before });
   Storage.set(STORAGE_KEY, JSON.stringify(transactions));
+  setTransactionEditModal(false);
+  editingTransactionId = null;
   render();
 };
 
@@ -1045,25 +1061,76 @@ const renderPie = (container, totals, emptyText) => {
 
   const ring = document.createElement("div");
   ring.className = "pie-ring";
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 220 220");
+  svg.classList.add("pie-ring-svg");
 
-  let cumulative = 0;
-  const segments = entries
-    .map(([, value], index) => {
-      const start = cumulative;
-      const portion = (value / total) * 100;
-      cumulative += portion;
-      return `${palette[index % palette.length]} ${start}% ${cumulative}%`;
-    })
-    .join(", ");
-
-  ring.style.background = `conic-gradient(${segments})`;
+  const tooltip = document.createElement("div");
+  tooltip.className = "pie-tooltip is-hidden";
 
   const totalLabel = document.createElement("div");
   totalLabel.className = "pie-total";
-  totalLabel.innerHTML = `<span>Итого</span><strong>${currencyFormatter.format(total)}</strong>`;
+  const resetCenter = () => {
+    totalLabel.innerHTML = `<span>Итого</span><strong>${currencyFormatter.format(total)}</strong>`;
+  };
+  resetCenter();
 
+  const centerX = 110;
+  const centerY = 110;
+  const radius = 92;
+  const strokeWidth = 30;
+  let currentAngle = -90;
+
+  const polarToCartesian = (cx, cy, r, angle) => {
+    const rad = (angle * Math.PI) / 180;
+    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+  };
+
+  entries.forEach(([label, value], index) => {
+    const portion = (value / total) * 360;
+    const endAngle = currentAngle + portion;
+    const start = polarToCartesian(centerX, centerY, radius, currentAngle);
+    const end = polarToCartesian(centerX, centerY, radius, endAngle);
+    const largeArc = portion > 180 ? 1 : 0;
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    const d = `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArc} 1 ${end.x} ${end.y}`;
+    path.setAttribute("d", d);
+    path.setAttribute("fill", "none");
+    path.setAttribute("stroke", palette[index % palette.length]);
+    path.setAttribute("stroke-width", String(strokeWidth));
+    path.setAttribute("stroke-linecap", "butt");
+    path.classList.add("pie-segment");
+
+    const percent = (value / total) * 100;
+    const detail = `${label}: ${currencyFormatter.format(value)} (${percent.toFixed(1)}%)`;
+
+    const showSegment = (event) => {
+      path.classList.add("is-active");
+      totalLabel.innerHTML = `<span>${label}</span><strong>${currencyFormatter.format(value)}</strong>`;
+      tooltip.textContent = detail;
+      tooltip.classList.remove("is-hidden");
+      const rect = visual.getBoundingClientRect();
+      tooltip.style.left = `${event.clientX - rect.left + 10}px`;
+      tooltip.style.top = `${event.clientY - rect.top - 8}px`;
+    };
+    const hideSegment = () => {
+      path.classList.remove("is-active");
+      tooltip.classList.add("is-hidden");
+      resetCenter();
+    };
+
+    path.addEventListener("mouseenter", showSegment);
+    path.addEventListener("mousemove", showSegment);
+    path.addEventListener("mouseleave", hideSegment);
+
+    svg.appendChild(path);
+    currentAngle = endAngle;
+  });
+
+  ring.appendChild(svg);
   visual.appendChild(ring);
   visual.appendChild(totalLabel);
+  visual.appendChild(tooltip);
 
   const legend = document.createElement("div");
   legend.className = "pie-legend";
@@ -1326,16 +1393,19 @@ const renderCharts = () => {
     expenseCategoryTotals,
     "Добавьте расходы, чтобы увидеть диаграмму."
   );
-  renderPie(
-    expenseSubcategoryPie,
-    expenseSubcategoryTotals,
-    "Добавьте расходы с подкатегориями, чтобы увидеть диаграмму."
-  );
-  renderPie(
-    incomePie,
-    incomeSubcategoryTotals,
-    "Добавьте доходы с подкатегориями, чтобы увидеть диаграмму."
-  );
+  if (expenseSubcategoryPiePanel) {
+    expenseSubcategoryPiePanel.classList.toggle("is-hidden", !showExpenseSubcategoryPieDetails);
+  }
+  if (toggleExpenseSubcategoryPieButton) {
+    toggleExpenseSubcategoryPieButton.textContent = showExpenseSubcategoryPieDetails ? "Скрыть детали" : "Подробнее";
+  }
+  if (showExpenseSubcategoryPieDetails) {
+    renderPie(
+      expenseSubcategoryPie,
+      expenseSubcategoryTotals,
+      "Добавьте расходы с подкатегориями, чтобы увидеть диаграмму."
+    );
+  }
 
   syncToggleButton(toggleExpenseCategoryButton, showAllExpenseCategories, canExpandExpenseCategories);
   syncToggleButton(toggleSubcategoryButton, showAllSubcategories, canExpandExpenseSubcategories);
@@ -1440,7 +1510,26 @@ const filterTransactionsByRange = (items) => {
   });
 };
 
+const renderReportMonthOptions = () => {
+  if (!reportMonthSelect) {
+    return;
+  }
+  const previous = reportMonthSelect.value;
+  const months = [...new Set(transactions.map((item) => item.date.slice(0, 7)))].sort().reverse();
+  reportMonthSelect.innerHTML = '<option value="">Выбрать месяц</option>';
+  months.forEach((month) => {
+    const option = document.createElement("option");
+    option.value = month;
+    const [y, m] = month.split("-");
+    const date = new Date(Number(y), Number(m) - 1, 1);
+    option.textContent = date.toLocaleDateString("ru-RU", { month: "long", year: "numeric" });
+    reportMonthSelect.appendChild(option);
+  });
+  reportMonthSelect.value = months.includes(previous) ? previous : "";
+};
+
 const renderReports = () => {
+  renderReportMonthOptions();
   const filtered = filterTransactionsByRange(transactions);
   const totals = filtered.reduce(
     (acc, item) => {
@@ -4026,7 +4115,7 @@ on(undoButton, "click", undoLastAction, "undo");
 
   on(tableBody, "click", (event) => {
     const target = event.target;
-    if (!(target instanceof HTMLButtonElement)) {
+    if (!(target instanceof HTMLButtonElement) && !(target instanceof HTMLInputElement)) {
       return;
     }
 
@@ -4049,7 +4138,7 @@ on(undoButton, "click", undoLastAction, "undo");
     }
 
     if (action === "edit-tx") {
-      editTransaction(id);
+      openEditTransactionModal(id);
       return;
     }
 
@@ -4192,6 +4281,40 @@ onAll(reportGranularityButtons, "click", (event) => {
   reportGranularity = event.currentTarget.dataset.reportGranularity;
   renderReports();
 }, "гранулярность отчета");
+
+
+on(reportMonthSelect, "change", (event) => {
+  const month = event.target.value;
+  if (!month) {
+    return;
+  }
+  reportRangeButtons.forEach((item) => item.classList.remove("is-active"));
+  const start = `${month}-01`;
+  const endDate = new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0);
+  const end = endDate.toISOString().slice(0, 10);
+  setReportRange(start, end);
+  renderReports();
+}, "выбор месяца отчета");
+
+on(toggleExpenseSubcategoryPieButton, "click", () => {
+  showExpenseSubcategoryPieDetails = !showExpenseSubcategoryPieDetails;
+  renderCharts();
+}, "детали pie");
+
+on(transactionEditClose, "click", () => {
+  setTransactionEditModal(false);
+  editingTransactionId = null;
+}, "закрыть редактирование операции");
+
+on(transactionEditOverlay, "click", () => {
+  setTransactionEditModal(false);
+  editingTransactionId = null;
+}, "overlay редактирования операции");
+
+on(transactionEditForm, "submit", (event) => {
+  event.preventDefault();
+  saveEditedTransaction();
+}, "сохранение редактирования операции");
 
 on(applyReportRangeButton, "click", () => {
   reportRangeButtons.forEach((item) => item.classList.remove("is-active"));
@@ -4352,7 +4475,7 @@ onAll(capitalTabs, "click", (event) => {
 
   on(capitalCategoryManager, "click", (event) => {
     const target = event.target;
-    if (!(target instanceof HTMLButtonElement)) {
+    if (!(target instanceof HTMLButtonElement) && !(target instanceof HTMLInputElement)) {
       return;
     }
     const action = target.dataset.action;
@@ -4548,7 +4671,7 @@ onAll(capitalTabs, "click", (event) => {
 
   on(capitalDebtsTable, "click", (event) => {
     const target = event.target;
-    if (!(target instanceof HTMLButtonElement)) {
+    if (!(target instanceof HTMLButtonElement) && !(target instanceof HTMLInputElement)) {
       return;
     }
     const id = target.dataset.debtDelete;
@@ -4571,7 +4694,7 @@ onAll(capitalTabs, "click", (event) => {
 
   on(capitalGoalsTable, "click", (event) => {
     const target = event.target;
-    if (!(target instanceof HTMLButtonElement)) {
+    if (!(target instanceof HTMLButtonElement) && !(target instanceof HTMLInputElement)) {
       return;
     }
     const id = target.dataset.goalDelete;
@@ -4601,7 +4724,7 @@ onAll(capitalTabs, "click", (event) => {
 
   on(capitalSnapshotsTable, "click", (event) => {
     const target = event.target;
-    if (!(target instanceof HTMLButtonElement)) {
+    if (!(target instanceof HTMLButtonElement) && !(target instanceof HTMLInputElement)) {
       return;
     }
     const month = target.dataset.snapshotDelete;
