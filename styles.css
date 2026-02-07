@@ -1092,6 +1092,8 @@ td {
 .asset-list-shell {
   display: grid;
   gap: 16px;
+  width: min(1120px, 100%);
+  margin: 0 auto;
 }
 
 .asset-list-header {
@@ -1189,9 +1191,14 @@ td {
 .asset-group-header,
 .asset-subgroup-header {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
-  gap: 16px;
+  gap: 12px;
+}
+
+.asset-group-info {
+  display: grid;
+  gap: 4px;
 }
 
 .asset-group-header h4,
@@ -1207,9 +1214,11 @@ td {
 }
 
 .asset-group-totals {
-  text-align: right;
-  display: grid;
-  gap: 4px;
+  text-align: left;
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
 .asset-profit {
@@ -1232,7 +1241,8 @@ td {
 .asset-items {
   display: grid;
   gap: 12px;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(220px, 260px));
+  justify-content: start;
 }
 
 .asset-subgroup-list.is-collapsed {
@@ -1262,6 +1272,7 @@ td {
   text-align: left;
   cursor: pointer;
   border-radius: 12px;
+  min-height: 190px;
 }
 
 .asset-item-main:hover {
@@ -1441,6 +1452,15 @@ td {
 }
 
 @media (max-width: 900px) {
+  .asset-group-header,
+  .asset-subgroup-header {
+    flex-wrap: wrap;
+  }
+
+  .asset-items {
+    grid-template-columns: 1fr;
+  }
+
   .asset-tile-metrics {
     grid-template-columns: 1fr;
   }

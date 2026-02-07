@@ -2801,19 +2801,19 @@ const renderCapitalAssets = () => {
     groupCard.className = "asset-group";
     groupCard.innerHTML = `
       <div class="asset-group-header">
-        <div>
+        <div class="asset-group-info">
           <h4>${groupName}</h4>
           <span class="asset-count">${groupAssets.length} актив(а)</span>
+          <div class="asset-group-totals">
+            <strong>${capitalFormatMoney(totalsGroup.amount)}</strong>
+            <span class="asset-profit ${groupMeta.profit < 0 ? "is-negative" : ""}">
+              ${capitalFormatMoney(groupMeta.profit)}
+            </span>
+          </div>
         </div>
         <button class="chip" data-action="toggle-group" data-group="${groupName}" aria-expanded="${isGroupOpen}">
           ${isGroupOpen ? "Свернуть" : "Развернуть"}
         </button>
-        <div class="asset-group-totals">
-          <strong>${capitalFormatMoney(totalsGroup.amount)}</strong>
-          <span class="asset-profit ${groupMeta.profit < 0 ? "is-negative" : ""}">
-            ${capitalFormatMoney(groupMeta.profit)}
-          </span>
-        </div>
       </div>
     `;
 
@@ -2829,19 +2829,19 @@ const renderCapitalAssets = () => {
       subSection.className = "asset-subgroup";
       subSection.innerHTML = `
         <div class="asset-subgroup-header">
-          <div>
+          <div class="asset-group-info">
             <h5>${subcategoryName}</h5>
             <span class="asset-count">${assets.length} актив(а)</span>
+            <div class="asset-group-totals">
+              <strong>${capitalFormatMoney(totalsSub.amount)}</strong>
+              <span class="asset-profit ${subMeta.profit < 0 ? "is-negative" : ""}">
+                ${capitalFormatMoney(subMeta.profit)}
+              </span>
+            </div>
           </div>
           <button class="chip" data-action="toggle-subgroup" data-group="${groupName}" data-subgroup="${subcategoryName}" aria-expanded="${isSubOpen}">
             ${isSubOpen ? "Свернуть" : "Развернуть"}
           </button>
-          <div class="asset-group-totals">
-            <strong>${capitalFormatMoney(totalsSub.amount)}</strong>
-            <span class="asset-profit ${subMeta.profit < 0 ? "is-negative" : ""}">
-              ${capitalFormatMoney(subMeta.profit)}
-            </span>
-          </div>
         </div>
       `;
 
