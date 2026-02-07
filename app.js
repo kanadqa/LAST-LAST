@@ -14,10 +14,6 @@ const categorySelect = document.getElementById("category");
 const subcategorySelect = document.getElementById("subcategory");
 const categoryTypeSelect = document.getElementById("categoryType");
 const categoryList = document.getElementById("categoryList");
-const quickAddInput = document.getElementById("quickAddInput");
-const quickAddButton = document.getElementById("quickAddButton");
-const transactionTemplateSelect = document.getElementById("transactionTemplateSelect");
-const saveTransactionTemplateButton = document.getElementById("saveTransactionTemplate");
 const transactionSearchInput = document.getElementById("transactionSearch");
 const transactionTypeFilter = document.getElementById("transactionTypeFilter");
 const transactionCategoryFilter = document.getElementById("transactionCategoryFilter");
@@ -164,7 +160,6 @@ const STORAGE_KEY = "budget.transactions.v2";
 const CATEGORY_KEY = "budget.categories.v3";
 const VIEW_KEY = "budget.view.active";
 const LAYOUT_KEY = "budget.layout";
-const TX_TEMPLATES_KEY = "budget.tx.templates.v1";
 const BACKUP_META_KEY = "budget.backup.meta.v1";
 const CHART_LIMIT = 6;
 const CAPITAL_KEY_V2 = "budget.capital.v2";
@@ -543,7 +538,6 @@ let categoryFilter = "all";
 let reportGranularity = "daily";
 let transactionFilters = { search: "", type: "all", category: "all" };
 let selectedTransactionIds = new Set();
-let transactionTemplates = [];
 let reportRange = { start: "", end: "" };
 let capitalState = null;
 let capitalOverviewFilter = "all";
@@ -774,32 +768,6 @@ const updateSummary = () => {
   balanceEl.textContent = currencyFormatter.format(totals.income - totals.expense);
   const percent = totals.income > 0 ? (totals.expense / totals.income) * 100 : 0;
   expensePercentEl.textContent = `${percent.toFixed(1)}% от доходов`;
-};
-
-const loadTransactionTemplates = async () => {
-  try {
-    const raw = await Storage.get(TX_TEMPLATES_KEY);
-    transactionTemplates = raw ? JSON.parse(raw) : [];
-  } catch {
-    transactionTemplates = [];
-  }
-};
-
-const saveTransactionTemplates = async () => {
-  await Storage.set(TX_TEMPLATES_KEY, JSON.stringify(transactionTemplates));
-};
-
-const renderTransactionTemplates = () => {
-  if (!transactionTemplateSelect) {
-    return;
-  }
-  transactionTemplateSelect.innerHTML = '<option value="">Выберите шаблон</option>';
-  transactionTemplates.forEach((item, index) => {
-    const option = document.createElement("option");
-    option.value = String(index);
-    option.textContent = `${item.category} · ${item.subcategory || "—"} · ${item.amount}`;
-    transactionTemplateSelect.appendChild(option);
-  });
 };
 
 const renderBackupMeta = async () => {
@@ -4130,69 +4098,6 @@ on(undoButton, "click", undoLastAction, "undo");
     render();
   }, "массовое удаление операций");
 
-  on(saveTransactionTemplateButton, "click", async () => {
-    const type = document.getElementById("type").value;
-    const category = categorySelect.value;
-    const subcategory = subcategorySelect.value || "";
-    const amount = Number.parseFloat(document.getElementById("amount").value);
-    if (!category || !Number.isFinite(amount) || amount <= 0) {
-      showError("Для шаблона укажите категорию и сумму > 0.");
-      return;
-    }
-    transactionTemplates.push({ type, category, subcategory, amount });
-    await saveTransactionTemplates();
-    renderTransactionTemplates();
-    showToast("Шаблон сохранен");
-  }, "сохранение шаблона");
-
-  on(transactionTemplateSelect, "change", (event) => {
-    const index = Number.parseInt(event.target.value, 10);
-    if (!Number.isFinite(index) || !transactionTemplates[index]) {
-      return;
-    }
-    const item = transactionTemplates[index];
-    document.getElementById("type").value = item.type;
-    renderCategoryOptions();
-    categorySelect.value = item.category;
-    updateSubcategoryOptions(item.category);
-    if (item.subcategory) {
-      subcategorySelect.value = item.subcategory;
-    }
-    document.getElementById("amount").value = item.amount;
-    updateTransactionFormState();
-  }, "выбор шаблона");
-
-  on(quickAddButton, "click", () => {
-    const value = quickAddInput.value.trim();
-    if (!value) {
-      return;
-    }
-    const parts = value.split(/\s+/);
-    const amount = Number.parseFloat(parts[0].replace(",", "."));
-    if (!Number.isFinite(amount) || amount <= 0) {
-      showError("Быстрое добавление: первым значением укажите сумму.");
-      return;
-    }
-    const category = parts[1] || categorySelect.value;
-    const note = parts.slice(2).join(" ");
-    const nowDate = document.getElementById("date").value || new Date().toISOString().slice(0, 10);
-    const type = document.getElementById("type").value;
-    transactions.push({
-      id: generateId("tx"),
-      date: nowDate,
-      type,
-      category,
-      subcategory: "",
-      amount,
-      note,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-    });
-    Storage.set(STORAGE_KEY, JSON.stringify(transactions));
-    quickAddInput.value = "";
-    showToast("Операция добавлена быстро");
-    render();
-  }, "быстрое добавление");
 
 on(exportButton, "click", () => {
   if (transactions.length === 0) {
@@ -4777,7 +4682,6 @@ onAll(capitalTabs, "click", (event) => {
 const loadState = async () => {
   transactions = await loadTransactions();
   categories = await loadCategories();
-  await loadTransactionTemplates();
   capitalState = await migrateCapitalState();
   const capitalMigrated = normalizeCapitalState();
   if (capitalMigrated) {
@@ -4805,7 +4709,6 @@ const initializeApp = safeExec(async () => {
 
   bindEvents();
   renderCategories();
-  renderTransactionTemplates();
   await renderBackupMeta();
   resetForm();
   initializeReportRange();
