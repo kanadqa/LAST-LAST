@@ -44,15 +44,22 @@
           <h2 id="viewTitle">Обзор</h2>
           <p class="subtitle">Быстрый учет финансов с диаграммами и категориями.</p>
         </div>
-        <div class="actions">
+        <div class="actions topbar-actions">
           <button id="undoAction" class="button secondary">Отменить</button>
-          <button id="exportCsv" class="button secondary">Экспорт CSV</button>
-          <button id="backupJson" class="button secondary">Backup JSON</button>
-          <label class="button secondary">
-            Восстановить JSON
-            <input id="restoreJson" type="file" accept="application/json" hidden />
-          </label>
-          <button id="clearAll" class="button danger">Очистить все</button>
+          <div class="topbar-actions-secondary">
+            <button id="exportCsv" class="button secondary">Экспорт CSV</button>
+            <button id="backupJson" class="button secondary">Backup JSON</button>
+            <label class="button secondary">
+              Восстановить JSON
+              <input id="restoreJson" type="file" accept="application/json" hidden />
+            </label>
+          </div>
+          <details class="topbar-more">
+            <summary class="button secondary">Еще</summary>
+            <div class="topbar-more-menu">
+              <button id="clearAll" class="button danger">Очистить все</button>
+            </div>
+          </details>
         </div>
       </header>
 
