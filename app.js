@@ -119,6 +119,7 @@ const capitalAssetViewButtons = document.querySelectorAll("[data-capital-asset-v
 const capitalAssetPanels = document.querySelectorAll("[data-capital-asset-panel]");
 const capitalCategoryForm = document.getElementById("capitalCategoryForm");
 const capitalCategoryName = document.getElementById("capitalCategoryName");
+const capitalCategoryList = document.getElementById("capitalCategoryList");
 const capitalSubcategoryName = document.getElementById("capitalSubcategoryName");
 const capitalCategoryManager = document.getElementById("capitalCategoryManager");
 const capitalWeightedApr = document.getElementById("capitalWeightedApr");
@@ -626,6 +627,9 @@ const normalizeCapitalState = () => {
       subs: [...subs],
     }));
   }
+  if (!capitalState.assetCategories.find((item) => item.name === "Без категории")) {
+    capitalState.assetCategories.push({ name: "Без категории", subs: [] });
+  }
   capitalState.debts = (capitalState.debts || []).map((debt) => ({
     id: debt.id || generateId("debt"),
     createdAt: debt.createdAt || debt.updatedAt || new Date().toISOString(),
@@ -664,6 +668,23 @@ const touchTransaction = (item, updates = {}) => ({
   ...updates,
   updatedAt: new Date().toISOString(),
 });
+
+const getTransactionSortTimestamp = (item) => {
+  const candidate = item?.createdAt || item?.updatedAt || item?.date;
+  const ts = Date.parse(candidate || "");
+  return Number.isFinite(ts) ? ts : 0;
+};
+
+const sortTransactionsForHistory = (source) =>
+  source
+    .slice()
+    .sort((a, b) => {
+      const byCreated = getTransactionSortTimestamp(b) - getTransactionSortTimestamp(a);
+      if (byCreated !== 0) {
+        return byCreated;
+      }
+      return String(b.id).localeCompare(String(a.id));
+    });
 
 const recordUndo = (kind, payload) => {
   if (!["addTx", "editTx", "deleteTx"].includes(kind)) {
@@ -749,9 +770,7 @@ const renderTable = () => {
     return;
   }
 
-  const displayList = transactions
-    .slice()
-    .sort((a, b) => new Date(b.date) - new Date(a.date));
+  const displayList = sortTransactionsForHistory(transactions);
 
   displayList.forEach((item) => {
       const row = document.createElement("tr");
@@ -762,10 +781,68 @@ const renderTable = () => {
         <td>${item.subcategory || "—"}</td>
         <td>${currencyFormatter.format(item.amount)}</td>
         <td>${item.note || "—"}</td>
-        <td><button class="button secondary" data-id="${item.id}">Удалить</button></td>
+        <td>
+          <div class="table-actions">
+            <button class="button secondary" data-action="edit-tx" data-id="${item.id}">Изменить</button>
+            <button class="button secondary" data-action="delete-tx" data-id="${item.id}">Удалить</button>
+          </div>
+        </td>
       `;
       tableBody.appendChild(row);
     });
+};
+
+const editTransaction = (id) => {
+  const index = transactions.findIndex((item) => item.id === id);
+  if (index === -1) {
+    return;
+  }
+  const current = transactions[index];
+  const date = prompt("Дата (ГГГГ-ММ-ДД)", current.date);
+  if (date === null) {
+    return;
+  }
+  const type = prompt("Тип операции: income или expense", current.type);
+  if (type === null) {
+    return;
+  }
+  const normalizedType = type.trim().toLowerCase();
+  if (!["income", "expense"].includes(normalizedType)) {
+    showError("Тип операции должен быть income или expense.");
+    return;
+  }
+  const category = prompt("Категория", current.category);
+  if (category === null || !category.trim()) {
+    showError("Категория не может быть пустой.");
+    return;
+  }
+  const subcategory = prompt("Подкатегория (опционально)", current.subcategory || "") || "";
+  const amountRaw = prompt("Сумма", String(current.amount));
+  if (amountRaw === null) {
+    return;
+  }
+  const amount = Number.parseFloat(amountRaw.replace(",", "."));
+  if (!Number.isFinite(amount) || amount <= 0) {
+    showError("Сумма должна быть больше 0.");
+    return;
+  }
+  const note = prompt("Комментарий", current.note || "");
+  if (note === null) {
+    return;
+  }
+
+  const before = { ...current };
+  transactions[index] = touchTransaction(current, {
+    date: date.trim(),
+    type: normalizedType,
+    category: category.trim(),
+    subcategory: subcategory.trim(),
+    amount,
+    note: note.trim(),
+  });
+  recordUndo("editTx", { before });
+  Storage.set(STORAGE_KEY, JSON.stringify(transactions));
+  render();
 };
 
 const buildTotals = (filterType, source = transactions) => {
@@ -2070,9 +2147,17 @@ const renderCapitalCategories = () => {
   }
   capitalCategoryManager.innerHTML = "";
   capitalSubcategoryList.innerHTML = "";
+  if (capitalCategoryList) {
+    capitalCategoryList.innerHTML = "";
+  }
 
   const sorted = capitalizeAssetCategories();
   sorted.forEach((category) => {
+    if (capitalCategoryList) {
+      const categoryOption = document.createElement("option");
+      categoryOption.value = category.name;
+      capitalCategoryList.appendChild(categoryOption);
+    }
     category.subs.forEach((sub) => {
       const subOption = document.createElement("option");
       subOption.value = sub;
@@ -3617,7 +3702,17 @@ on(undoButton, "click", undoLastAction, "undo");
     }
 
     const id = target.dataset.id;
+    const action = target.dataset.action;
     if (!id) {
+      return;
+    }
+
+    if (action === "edit-tx") {
+      editTransaction(id);
+      return;
+    }
+
+    if (action && action !== "delete-tx") {
       return;
     }
 
@@ -3630,7 +3725,7 @@ on(undoButton, "click", undoLastAction, "undo");
     recordUndo("deleteTx", { item: deleted, index });
     Storage.set(STORAGE_KEY, JSON.stringify(transactions));
     render();
-  }, "удаление операции");
+  }, "удаление/редактирование операции");
 
 on(exportButton, "click", () => {
   if (transactions.length === 0) {
@@ -3862,9 +3957,25 @@ onAll(capitalTabs, "click", (event) => {
     const categoryName = target.dataset.capitalCategoryDelete;
     const subcategoryName = target.dataset.subcategory;
     if (categoryName && !subcategoryName) {
+      if (categoryName === "Без категории") {
+        showError("Категорию «Без категории» нельзя удалить.");
+        return;
+      }
+      capitalState.assets = capitalState.assets.map((asset) => {
+        if (asset.category !== categoryName) {
+          return asset;
+        }
+        return {
+          ...asset,
+          category: "Без категории",
+          subcategory: "",
+          updatedAt: capitalNowIso(),
+        };
+      });
       capitalState.assetCategories = capitalState.assetCategories.filter((category) => category.name !== categoryName);
       saveCapitalV2(capitalState);
       renderCapitalCategories();
+      render("capital");
       return;
     }
     if (categoryName && subcategoryName) {

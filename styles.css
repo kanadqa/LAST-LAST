@@ -2050,3 +2050,10 @@ td {
     align-items: flex-start;
   }
 }
+
+
+.table-actions {
+  display: flex;
+  gap: 0.4rem;
+  justify-content: flex-end;
+}
