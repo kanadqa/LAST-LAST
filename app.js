@@ -4737,16 +4737,35 @@ onAll(capitalTabs, "click", (event) => {
     const type = assetOperationType?.value || "note";
     const amount = assetOperationAmount?.value ? Number.parseFloat(assetOperationAmount.value) : null;
     const note = assetOperationNote?.value?.trim() || "";
+    if (type !== "note" && (!Number.isFinite(amount) || amount <= 0)) {
+      showError("Для этой операции укажите сумму больше нуля.");
+      return;
+    }
+
+    if (Number.isFinite(amount)) {
+      if (type === "deposit") {
+        asset.amount = sanitizeNumber(asset.amount, 0) + amount;
+        asset.invested = sanitizeNumber(asset.invested, 0) + amount;
+      } else if (type === "withdraw") {
+        asset.amount = Math.max(0, sanitizeNumber(asset.amount, 0) - amount);
+      } else if (type === "adjust") {
+        asset.amount = amount;
+      }
+      asset.updatedAt = capitalNowIso();
+    }
+
     asset.history = [
       ...(asset.history || []),
       { type, amount: Number.isFinite(amount) ? amount : null, note, ts: capitalNowIso() },
     ];
     saveCapitalV2(capitalState);
+    openAssetDetailsModal(selectedAssetDetailsId);
+    renderCapitalView();
     renderAssetHistory(asset);
     if (assetOperationForm) {
       assetOperationForm.reset();
     }
-    showToast("Запись добавлена");
+    showToast(type === "note" ? "Запись добавлена" : "Операция применена");
   }, "asset history add");
 
   on(assetDetailsEdit, "click", () => {

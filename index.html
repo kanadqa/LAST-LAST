@@ -557,49 +557,59 @@
           </div>
 
           <div id="assetDetailsOverlay" class="capital-asset-overlay"></div>
-          <div id="assetDetailsModal" class="transaction-edit-modal asset-details-modal" aria-hidden="true">
-            <div class="transaction-edit-header">
-              <h3 id="assetDetailsTitle">Детали актива</h3>
+          <section id="assetDetailsModal" class="asset-fullscreen-modal" aria-hidden="true">
+            <header class="asset-fullscreen-header">
+              <div>
+                <h2 id="assetDetailsTitle">Детали актива</h2>
+                <p id="assetDetailsMeta" class="hint"></p>
+              </div>
               <button id="assetDetailsClose" type="button" class="button secondary">Закрыть</button>
-            </div>
-            <p id="assetDetailsMeta" class="hint"></p>
+            </header>
+
             <div class="asset-modal-summary">
               <div><span>Сейчас</span><strong id="assetDetailsCurrent">—</strong></div>
               <div><span>Вложено</span><strong id="assetDetailsInvested">—</strong></div>
               <div><span>Прибыль</span><strong id="assetDetailsProfit">—</strong></div>
             </div>
+
             <div class="asset-modal-layout">
-              <div>
-                <h4>Операции / лог изменений</h4>
+              <section class="card">
+                <div class="chart-title">
+                  <h3>Операции</h3>
+                </div>
                 <div id="assetDetailsHistory" class="asset-history"></div>
-              </div>
-              <form id="assetOperationForm" class="form compact-form">
-                <h4>Добавить операцию</h4>
-                <label>
-                  Тип
-                  <select id="assetOperationType">
-                    <option value="deposit">Пополнение</option>
-                    <option value="withdraw">Списание</option>
-                    <option value="adjust">Корректировка</option>
-                    <option value="note">Заметка</option>
-                  </select>
-                </label>
-                <label>
-                  Сумма
-                  <input id="assetOperationAmount" type="number" step="0.01" min="0" placeholder="опционально" />
-                </label>
-                <label>
-                  Комментарий
-                  <input id="assetOperationNote" type="text" placeholder="например, пополнение с зарплаты" />
-                </label>
-                <button type="submit" class="button primary">Добавить запись</button>
+              </section>
+
+              <section class="card">
+                <form id="assetOperationForm" class="form compact-form">
+                  <h3>Добавить операцию</h3>
+                  <label>
+                    Тип
+                    <select id="assetOperationType">
+                      <option value="deposit">Пополнение</option>
+                      <option value="withdraw">Списание</option>
+                      <option value="adjust">Корректировка суммы</option>
+                      <option value="note">Заметка</option>
+                    </select>
+                  </label>
+                  <label>
+                    Сумма
+                    <input id="assetOperationAmount" type="number" step="0.01" min="0" placeholder="для заметки можно оставить пустым" />
+                  </label>
+                  <label>
+                    Комментарий
+                    <input id="assetOperationNote" type="text" placeholder="например, пополнение с зарплаты" />
+                  </label>
+                  <button type="submit" class="button primary">Добавить операцию</button>
+                </form>
+
                 <div class="asset-modal-actions">
                   <button id="assetDetailsEdit" type="button" class="button secondary">Редактировать актив</button>
                   <button id="assetDetailsDelete" type="button" class="button danger">Удалить актив</button>
                 </div>
-              </form>
+              </section>
             </div>
-          </div>
+          </section>
 
 
           <div id="transactionEditOverlay" class="capital-asset-overlay"></div>
