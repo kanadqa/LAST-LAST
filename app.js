@@ -107,6 +107,19 @@ const capitalAssetNote = document.getElementById("capitalAssetNote");
 const capitalAssetClose = document.getElementById("capitalAssetClose");
 const capitalAssetDelete = document.getElementById("capitalAssetDelete");
 const capitalAssetDrawerTitle = document.getElementById("capitalAssetDrawerTitle");
+const assetDetailsOverlay = document.getElementById("assetDetailsOverlay");
+const assetDetailsModal = document.getElementById("assetDetailsModal");
+const assetDetailsClose = document.getElementById("assetDetailsClose");
+const assetDetailsTitle = document.getElementById("assetDetailsTitle");
+const assetDetailsMeta = document.getElementById("assetDetailsMeta");
+const assetDetailsCurrent = document.getElementById("assetDetailsCurrent");
+const assetDetailsInvested = document.getElementById("assetDetailsInvested");
+const assetDetailsProfit = document.getElementById("assetDetailsProfit");
+const assetDetailsHistory = document.getElementById("assetDetailsHistory");
+const assetOperationForm = document.getElementById("assetOperationForm");
+const assetOperationType = document.getElementById("assetOperationType");
+const assetOperationAmount = document.getElementById("assetOperationAmount");
+const assetOperationNote = document.getElementById("assetOperationNote");
 const toast = document.getElementById("toast");
 const transactionEditOverlay = document.getElementById("transactionEditOverlay");
 const transactionEditModal = document.getElementById("transactionEditModal");
@@ -128,6 +141,18 @@ const ensureFloatingTransactionEditModal = () => {
   }
   if (transactionEditModal.parentElement !== document.body) {
     document.body.appendChild(transactionEditModal);
+  }
+};
+
+const ensureFloatingAssetDetailsModal = () => {
+  if (!assetDetailsOverlay || !assetDetailsModal) {
+    return;
+  }
+  if (assetDetailsOverlay.parentElement !== document.body) {
+    document.body.appendChild(assetDetailsOverlay);
+  }
+  if (assetDetailsModal.parentElement !== document.body) {
+    document.body.appendChild(assetDetailsModal);
   }
 };
 const selfTestPanel = document.getElementById("selfTestPanel");
@@ -565,6 +590,7 @@ let reportRange = { start: "", end: "" };
 let capitalState = null;
 let capitalOverviewFilter = "all";
 let capitalEditingAssetId = null;
+let selectedAssetDetailsId = null;
 let activeView = "dashboard";
 let currentLayout = "comfort";
 const assetFilters = {
@@ -637,6 +663,7 @@ const normalizeCapitalState = () => {
       expectedProfit: isDeposit ? (asset.expectedProfit ?? null) : null,
       maturityDate,
       unconvertible: asset.unconvertible ?? false,
+      history: Array.isArray(asset.history) ? asset.history : [],
       ...asset,
       currency,
       amount,
@@ -1896,6 +1923,15 @@ const capitalTypeLabel = (type) => ({
   other: "Другое",
 }[type] || type);
 
+const assetOperationLabel = (type) => ({
+  deposit: "Пополнение",
+  withdraw: "Списание",
+  adjust: "Корректировка",
+  note: "Заметка",
+  create: "Создание",
+  update: "Изменение",
+}[type] || type);
+
 const capitalLiquidityLabel = (value) => ({
   high: "Можно вывести сразу",
   medium: "Нужно 1–3 дня",
@@ -2800,7 +2836,7 @@ const renderCapitalAssets = () => {
     const groupCard = document.createElement("div");
     groupCard.className = "asset-group";
     groupCard.innerHTML = `
-      <div class="asset-group-header">
+      <div class="asset-group-header" data-action="toggle-group" data-group="${groupName}" role="button" tabindex="0" aria-expanded="${isGroupOpen}">
         <div class="asset-group-info">
           <h4>${groupName}</h4>
           <span class="asset-count">${groupAssets.length} актив(а)</span>
@@ -2811,9 +2847,7 @@ const renderCapitalAssets = () => {
             </span>
           </div>
         </div>
-        <button class="chip" data-action="toggle-group" data-group="${groupName}" aria-expanded="${isGroupOpen}">
-          ${isGroupOpen ? "Свернуть" : "Развернуть"}
-        </button>
+        <span class="asset-header-toggle">${isGroupOpen ? "Свернуть" : "Развернуть"}</span>
       </div>
     `;
 
@@ -2828,7 +2862,7 @@ const renderCapitalAssets = () => {
       const subSection = document.createElement("div");
       subSection.className = "asset-subgroup";
       subSection.innerHTML = `
-        <div class="asset-subgroup-header">
+        <div class="asset-subgroup-header" data-action="toggle-subgroup" data-group="${groupName}" data-subgroup="${subcategoryName}" role="button" tabindex="0" aria-expanded="${isSubOpen}">
           <div class="asset-group-info">
             <h5>${subcategoryName}</h5>
             <span class="asset-count">${assets.length} актив(а)</span>
@@ -2839,9 +2873,7 @@ const renderCapitalAssets = () => {
               </span>
             </div>
           </div>
-          <button class="chip" data-action="toggle-subgroup" data-group="${groupName}" data-subgroup="${subcategoryName}" aria-expanded="${isSubOpen}">
-            ${isSubOpen ? "Свернуть" : "Развернуть"}
-          </button>
+          <span class="asset-header-toggle">${isSubOpen ? "Свернуть" : "Развернуть"}</span>
         </div>
       `;
 
@@ -2870,14 +2902,13 @@ const renderCapitalAssets = () => {
         const avatarMarkup = asset.avatarDataUrl
           ? `<img src="${asset.avatarDataUrl}" alt="" />`
           : `<span>${iconValue || iconLetter}</span>`;
-        const detailId = `asset-details-${asset.id}`;
         const missingRateChip = hasRate ? "" : "<span class='chip chip-missing'>нет курса</span>";
 
         const card = document.createElement("div");
         card.className = "asset-item";
         card.dataset.assetId = asset.id;
         card.innerHTML = `
-          <div class="asset-item-main" data-action="toggle" role="button" tabindex="0" aria-expanded="false" aria-controls="${detailId}">
+          <div class="asset-item-main" data-action="asset-details" data-id="${asset.id}" role="button" tabindex="0" aria-label="Открыть детали актива ${asset.name}">
             <div class="asset-tile-top">
               <span class="asset-avatar">${avatarMarkup}</span>
               <span class="asset-main">
@@ -2908,31 +2939,7 @@ const renderCapitalAssets = () => {
                 <button class="chip" data-action="edit-asset" data-id="${asset.id}" type="button" aria-label="Редактировать">✎</button>
                 <button class="chip danger" data-action="delete-asset" data-id="${asset.id}" type="button" aria-label="Удалить">🗑</button>
               </span>
-              <span class="asset-toggle-label">Подробнее</span>
-            </div>
-          </div>
-          <div id="${detailId}" class="asset-details">
-            <div class="asset-detail-grid">
-              <div class="asset-detail-row">
-                <span>Дата окончания</span>
-                <strong>${asset.maturityDate || "—"}</strong>
-              </div>
-              <div class="asset-detail-row">
-                <span>Потенц. доходность</span>
-                <strong>${asset.expectedProfit != null && asset.expectedProfit !== "" ? asset.expectedProfit : "—"}</strong>
-              </div>
-              <div class="asset-detail-row">
-                <span>Комментарий</span>
-                <strong>${asset.note || "—"}</strong>
-              </div>
-              <div class="asset-detail-row">
-                <span>Валюта</span>
-                <strong>${asset.currency}</strong>
-              </div>
-            </div>
-            <div class="asset-detail-actions">
-              <button class="button secondary" data-action="edit-asset" data-id="${asset.id}">Редактировать</button>
-              <button class="button danger" data-action="delete-asset" data-id="${asset.id}">Удалить</button>
+              <span class="asset-toggle-label">Открыть</span>
             </div>
           </div>
         `;
@@ -3289,6 +3296,60 @@ const capitalSetAssetModal = (isOpen) => {
   }
 };
 
+const setAssetDetailsModal = (isOpen) => {
+  if (!assetDetailsModal || !assetDetailsOverlay) {
+    return;
+  }
+  assetDetailsModal.classList.toggle("is-open", isOpen);
+  assetDetailsModal.setAttribute("aria-hidden", String(!isOpen));
+  assetDetailsOverlay.classList.toggle("is-active", isOpen);
+};
+
+const renderAssetHistory = (asset) => {
+  if (!assetDetailsHistory) {
+    return;
+  }
+  const logs = [...(asset.history || [])].sort((a, b) => String(b.ts || "").localeCompare(String(a.ts || "")));
+  if (!logs.length) {
+    assetDetailsHistory.innerHTML = "<p class='hint'>Пока нет записей.</p>";
+    return;
+  }
+  assetDetailsHistory.innerHTML = logs.map((item) => {
+    const parsedAmount = Number.parseFloat(String(item.amount));
+    const amountText = Number.isFinite(parsedAmount) ? ` · ${capitalFormatMoney(parsedAmount)}` : "";
+    const note = item.note ? `<span class='hint'>${item.note}</span>` : "";
+    return `<div class='asset-history-item'><strong>${assetOperationLabel(item.type)}</strong><span>${new Date(item.ts).toLocaleString("ru-RU")}${amountText}</span>${note}</div>`;
+  }).join("");
+};
+
+const openAssetDetailsModal = (assetId) => {
+  const asset = capitalState.assets.find((item) => item.id === assetId);
+  if (!asset) {
+    return;
+  }
+  selectedAssetDetailsId = assetId;
+  const amountBase = assetValueInBase(asset, "amount");
+  const investedBase = assetValueInBase(asset, "invested");
+  const profitMeta = getProfitMeta(amountBase ?? 0, investedBase ?? 0);
+  if (assetDetailsTitle) {
+    assetDetailsTitle.textContent = asset.name || "Детали актива";
+  }
+  if (assetDetailsMeta) {
+    assetDetailsMeta.textContent = `${capitalTypeLabel(asset.type)} • ${asset.currency} • ${asset.subcategory || "Без подкатегории"}`;
+  }
+  if (assetDetailsCurrent) {
+    assetDetailsCurrent.textContent = amountBase == null ? `нет курса для ${asset.currency}` : capitalFormatMoney(amountBase);
+  }
+  if (assetDetailsInvested) {
+    assetDetailsInvested.textContent = investedBase == null ? "нет курса" : capitalFormatMoney(investedBase);
+  }
+  if (assetDetailsProfit) {
+    assetDetailsProfit.textContent = amountBase == null || investedBase == null ? "—" : capitalFormatMoney(profitMeta.profit);
+  }
+  renderAssetHistory(asset);
+  setAssetDetailsModal(true);
+};
+
 const capitalIsAssetModalOpen = () =>
   capitalAssetDrawer ? capitalAssetDrawer.classList.contains("is-modal") : false;
 
@@ -3445,6 +3506,9 @@ const capitalAddAsset = () => {
     note: capitalAssetNote.value.trim(),
     icon: capitalDefaultIcon(capitalAssetType.value),
     avatarDataUrl: "",
+    history: capitalEditingAssetId
+      ? (capitalState.assets.find((item) => item.id === capitalEditingAssetId)?.history || [])
+      : [{ type: "create", amount, note: "Актив создан", ts: capitalNowIso() }],
   };
   if (capitalEditingAssetId) {
     const existing = capitalState.assets.find((item) => item.id === capitalEditingAssetId);
@@ -3453,6 +3517,7 @@ const capitalAddAsset = () => {
       return;
     }
     Object.assign(existing, payload, { updatedAt: capitalNowIso() });
+    existing.history = [...(existing.history || []), { type: "update", amount, note: "Параметры актива обновлены", ts: capitalNowIso() }];
     existing.unconvertible = capitalIsUnconvertible(existing);
     ensureFxRateForCurrency(existing.currency);
   } else {
@@ -4583,20 +4648,8 @@ onAll(capitalTabs, "click", (event) => {
       return;
     }
 
-    if (action === "toggle") {
-      const isExpanded = actionButton.getAttribute("aria-expanded") === "true";
-      actionButton.setAttribute("aria-expanded", String(!isExpanded));
-      const label = actionButton.querySelector(".asset-toggle-label");
-      if (label) {
-        label.textContent = isExpanded ? "Подробнее" : "Скрыть";
-      }
-      const detailsId = actionButton.getAttribute("aria-controls");
-      if (detailsId) {
-        const details = document.getElementById(detailsId);
-        if (details) {
-          details.classList.toggle("is-open", !isExpanded);
-        }
-      }
+    if (action === "asset-details") {
+      openAssetDetailsModal(assetId);
       return;
     }
 
@@ -4604,6 +4657,10 @@ onAll(capitalTabs, "click", (event) => {
       const groupName = actionButton.dataset.group;
       if (groupName) {
         assetUiState.groups[groupName] = !(assetUiState.groups[groupName] ?? true);
+        const toggleLabel = actionButton.querySelector(".asset-header-toggle");
+        if (toggleLabel) {
+          toggleLabel.textContent = assetUiState.groups[groupName] ? "Свернуть" : "Развернуть";
+        }
         persistAssetUiState();
         renderCapitalAssets();
       }
@@ -4616,6 +4673,10 @@ onAll(capitalTabs, "click", (event) => {
       if (groupName && subName) {
         const key = `${groupName}::${subName}`;
         assetUiState.subgroups[key] = !(assetUiState.subgroups[key] ?? true);
+        const toggleLabel = actionButton.querySelector(".asset-header-toggle");
+        if (toggleLabel) {
+          toggleLabel.textContent = assetUiState.subgroups[key] ? "Свернуть" : "Развернуть";
+        }
         persistAssetUiState();
         renderCapitalAssets();
       }
@@ -4649,7 +4710,7 @@ onAll(capitalTabs, "click", (event) => {
   }, "действия по активу");
 
   on(capitalAssetsList, "keydown", (event) => {
-    const target = event.target.closest("[data-action='toggle']");
+    const target = event.target.closest("[data-action='asset-details'], [data-action='toggle-group'], [data-action='toggle-subgroup']");
     if (!target) {
       return;
     }
@@ -4657,7 +4718,41 @@ onAll(capitalTabs, "click", (event) => {
       event.preventDefault();
       target.click();
     }
-  }, "toggle details");
+  }, "details modal");
+
+  on(assetDetailsClose, "click", () => {
+    setAssetDetailsModal(false);
+    selectedAssetDetailsId = null;
+  }, "close asset details");
+
+  on(assetDetailsOverlay, "click", () => {
+    setAssetDetailsModal(false);
+    selectedAssetDetailsId = null;
+  }, "overlay asset details");
+
+  on(assetOperationForm, "submit", (event) => {
+    event.preventDefault();
+    if (!selectedAssetDetailsId) {
+      return;
+    }
+    const asset = capitalState.assets.find((item) => item.id === selectedAssetDetailsId);
+    if (!asset) {
+      return;
+    }
+    const type = assetOperationType?.value || "note";
+    const amount = assetOperationAmount?.value ? Number.parseFloat(assetOperationAmount.value) : null;
+    const note = assetOperationNote?.value?.trim() || "";
+    asset.history = [
+      ...(asset.history || []),
+      { type, amount: Number.isFinite(amount) ? amount : null, note, ts: capitalNowIso() },
+    ];
+    saveCapitalV2(capitalState);
+    renderAssetHistory(asset);
+    if (assetOperationForm) {
+      assetOperationForm.reset();
+    }
+    showToast("Запись добавлена");
+  }, "asset history add");
 
   on(capitalDebtForm, "submit", (event) => {
     event.preventDefault();
@@ -4846,6 +4941,7 @@ const initializeApp = safeExec(async () => {
   await loadState();
 
   ensureFloatingTransactionEditModal();
+  ensureFloatingAssetDetailsModal();
   bindEvents();
   renderCategories();
   renderCapitalSubcategoryOptions();
