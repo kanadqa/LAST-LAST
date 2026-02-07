@@ -2851,6 +2851,7 @@ const renderCapitalAssets = () => {
       assets.forEach((asset) => {
         const amountBase = assetValueInBase(asset, "amount");
         const investedBase = assetValueInBase(asset, "invested");
+        const hasRate = amountBase != null && investedBase != null;
         const amountLabel = amountBase == null
           ? `нет курса для ${asset.currency}`
           : capitalFormatMoney(amountBase);
@@ -2870,7 +2871,6 @@ const renderCapitalAssets = () => {
           ? `<img src="${asset.avatarDataUrl}" alt="" />`
           : `<span>${iconValue || iconLetter}</span>`;
         const detailId = `asset-details-${asset.id}`;
-        const hasRate = amountBase != null && investedBase != null;
         const missingRateChip = hasRate ? "" : "<span class='chip chip-missing'>нет курса</span>";
 
         const card = document.createElement("div");
@@ -2878,29 +2878,38 @@ const renderCapitalAssets = () => {
         card.dataset.assetId = asset.id;
         card.innerHTML = `
           <div class="asset-item-main" data-action="toggle" role="button" tabindex="0" aria-expanded="false" aria-controls="${detailId}">
-            <span class="asset-avatar">${avatarMarkup}</span>
-            <span class="asset-main">
-              <span class="asset-title">${asset.name}</span>
-              <span class="asset-meta">${capitalTypeLabel(asset.type)} • ${asset.currency}</span>
-            </span>
-            <span class="asset-values">
-              <span class="asset-amount">${amountLabel}</span>
-              <span class="asset-invested">вложено ${investedLabel}</span>
-              ${missingRateChip}
-            </span>
-            <span class="asset-profit-block">
-              <span class="asset-profit ${profitMeta.profit < 0 ? "is-negative" : ""}">${profitLabel}</span>
-              <span class="asset-profit-percent ${showPercentWarning ? "is-warning" : ""}">
-                ${percentLabel}
+            <div class="asset-tile-top">
+              <span class="asset-avatar">${avatarMarkup}</span>
+              <span class="asset-main">
+                <span class="asset-title">${asset.name}</span>
+                <span class="asset-meta">${capitalTypeLabel(asset.type)} • ${asset.currency}</span>
               </span>
-              ${showPercentWarning ? "<span class='asset-warning'>проверь данные</span><span class='chip chip-warning'>проверить</span>" : ""}
-            </span>
-            <span class="chip chip-liquidity">${liquidityLabel}</span>
-            <span class="asset-quick-actions">
-              <button class="chip" data-action="edit-asset" data-id="${asset.id}" type="button" aria-label="Редактировать">✎</button>
-              <button class="chip danger" data-action="delete-asset" data-id="${asset.id}" type="button" aria-label="Удалить">🗑</button>
-            </span>
-            <span class="chevron">›</span>
+            </div>
+            <div class="asset-tile-metrics">
+              <span class="asset-values">
+                <span class="asset-label">Сейчас</span>
+                <span class="asset-amount">${amountLabel}</span>
+              </span>
+              <span class="asset-values">
+                <span class="asset-label">Вложено</span>
+                <span class="asset-invested">${investedLabel}</span>
+              </span>
+              <span class="asset-profit-block">
+                <span class="asset-label">Прибыль</span>
+                <span class="asset-profit ${profitMeta.profit < 0 ? "is-negative" : ""}">${profitLabel}</span>
+                <span class="asset-profit-percent ${showPercentWarning ? "is-warning" : ""}">${percentLabel}</span>
+              </span>
+            </div>
+            <div class="asset-tile-bottom">
+              <span class="chip chip-liquidity">${liquidityLabel}</span>
+              ${missingRateChip}
+              ${showPercentWarning ? "<span class='chip chip-warning'>проверь данные</span>" : ""}
+              <span class="asset-quick-actions">
+                <button class="chip" data-action="edit-asset" data-id="${asset.id}" type="button" aria-label="Редактировать">✎</button>
+                <button class="chip danger" data-action="delete-asset" data-id="${asset.id}" type="button" aria-label="Удалить">🗑</button>
+              </span>
+              <span class="asset-toggle-label">Подробнее</span>
+            </div>
           </div>
           <div id="${detailId}" class="asset-details">
             <div class="asset-detail-grid">
@@ -4577,6 +4586,10 @@ onAll(capitalTabs, "click", (event) => {
     if (action === "toggle") {
       const isExpanded = actionButton.getAttribute("aria-expanded") === "true";
       actionButton.setAttribute("aria-expanded", String(!isExpanded));
+      const label = actionButton.querySelector(".asset-toggle-label");
+      if (label) {
+        label.textContent = isExpanded ? "Подробнее" : "Скрыть";
+      }
       const detailsId = actionButton.getAttribute("aria-controls");
       if (detailsId) {
         const details = document.getElementById(detailsId);
