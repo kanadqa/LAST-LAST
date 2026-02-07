@@ -954,6 +954,9 @@ const buildSubTotals = (type, source = transactions) => {
 };
 
 const renderChart = (container, totals, emptyText, options = {}) => {
+  if (!container) {
+    return;
+  }
   container.innerHTML = "";
   const entries = Object.entries(totals).sort((a, b) => b[1] - a[1]);
   const formatter = options.formatter || currencyFormatter;
@@ -1020,6 +1023,9 @@ const buildPie = (totals) => {
 };
 
 const renderPie = (container, totals, emptyText) => {
+  if (!container) {
+    return;
+  }
   container.innerHTML = "";
   const { entries, total } = buildPie(totals);
 
@@ -1063,6 +1069,7 @@ const renderPie = (container, totals, emptyText) => {
   legend.className = "pie-legend";
 
   entries.forEach(([label, value], index) => {
+    const percent = (value / total) * 100;
     const item = document.createElement("div");
     item.className = "pie-legend-item";
 
@@ -1071,7 +1078,7 @@ const renderPie = (container, totals, emptyText) => {
     swatch.style.background = palette[index % palette.length];
 
     const text = document.createElement("div");
-    text.innerHTML = `<strong>${label}</strong><span>${currencyFormatter.format(value)}</span>`;
+    text.innerHTML = `<strong>${label}</strong><span>${currencyFormatter.format(value)} · ${percent.toFixed(1)}%</span>`;
 
     item.appendChild(swatch);
     item.appendChild(text);
