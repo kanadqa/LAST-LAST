@@ -174,7 +174,9 @@ const capitalAssetViewButtons = document.querySelectorAll("[data-capital-asset-v
 const capitalAssetPanels = document.querySelectorAll("[data-capital-asset-panel]");
 const addCapitalCategoryButton = document.getElementById("addCapitalCategory");
 const capitalCategoryName = document.getElementById("capitalCategoryName");
+const capitalCategoryList = document.getElementById("capitalCategoryList");
 const capitalSubcategoryName = document.getElementById("capitalSubcategoryName");
+const capitalSubcategoryList = document.getElementById("capitalSubcategoryList");
 const capitalCategoryManager = document.getElementById("capitalCategoryManager");
 const capitalCategoryDropzone = document.getElementById("capitalCategoryDropzone");
 const capitalWeightedApr = document.getElementById("capitalWeightedApr");
@@ -2412,9 +2414,43 @@ const capitalEnsureCategory = (name, subcategory = "") => {
 const findCapitalCategory = (name) =>
   capitalState.assetCategories.find((category) => category.name === name);
 
+const renderCapitalCategoryHints = () => {
+  if (capitalCategoryList) {
+    capitalCategoryList.innerHTML = "";
+    capitalizeAssetCategories().forEach((category) => {
+      const option = document.createElement("option");
+      option.value = category.name;
+      capitalCategoryList.appendChild(option);
+    });
+  }
+  if (capitalSubcategoryList) {
+    const activeCategory = capitalCategoryName?.value?.trim();
+    const subs = activeCategory
+      ? [...(findCapitalCategory(activeCategory)?.subs || [])].sort((a, b) => a.localeCompare(b, "ru"))
+      : capitalizeAssetCategories().flatMap((category) => category.subs || []);
+    const uniqueSubs = [...new Set(subs)];
+    capitalSubcategoryList.innerHTML = "";
+    uniqueSubs.forEach((sub) => {
+      const option = document.createElement("option");
+      option.value = sub;
+      capitalSubcategoryList.appendChild(option);
+    });
+  }
+};
+
 const saveAndRenderCapitalCategories = () => {
   saveCapitalV2(capitalState);
   renderCapitalCategories();
+  renderCapitalCategoryHints();
+  renderCapitalSubcategoryOptions(capitalSubcategorySelect?.value || "");
+  renderCapitalAssets();
+  renderCapitalSummary();
+  renderCapitalLedger();
+  renderCapitalStructureCharts();
+  renderCapitalOverview();
+  if (selectedAssetDetailsId) {
+    openAssetDetailsModal(selectedAssetDetailsId);
+  }
 };
 
 const renameCapitalCategory = (oldName, newName) => {
@@ -2623,6 +2659,7 @@ const renderCapitalCategories = () => {
     card.appendChild(list);
     capitalCategoryManager.appendChild(card);
   });
+  renderCapitalCategoryHints();
 };
 
 const handleCapitalDragStart = (event) => {
@@ -4536,6 +4573,14 @@ onAll(capitalTabs, "click", (event) => {
     }
   }, "ввод подкатегории капитала");
 
+  on(capitalCategoryName, "input", () => {
+    renderCapitalCategoryHints();
+  }, "подсказки категорий капитала");
+
+  on(capitalSubcategoryName, "focus", () => {
+    renderCapitalCategoryHints();
+  }, "подсказки подкатегорий капитала");
+
   on(capitalCategoryManager, "click", (event) => {
     const target = event.target;
     if (!(target instanceof HTMLButtonElement) && !(target instanceof HTMLInputElement)) {
@@ -4989,6 +5034,7 @@ const initializeApp = safeExec(async () => {
   ensureFloatingAssetDetailsModal();
   bindEvents();
   renderCategories();
+  renderCapitalCategoryHints();
   renderCapitalSubcategoryOptions();
   await renderBackupMeta();
   resetForm();

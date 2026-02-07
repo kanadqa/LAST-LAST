@@ -1483,13 +1483,13 @@ td {
 
 .asset-fullscreen-modal {
   position: fixed;
-  inset: 3vh 3vw;
+  inset: 2.5vh 2vw;
   z-index: 56;
-  background: #f8fafc;
-  border-radius: 14px;
-  border: 1px solid #e2e8f0;
-  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.22);
-  padding: 16px;
+  background: linear-gradient(180deg, #f8fafc 0%, #eef2ff 100%);
+  border-radius: 18px;
+  border: 1px solid #dbe4f0;
+  box-shadow: 0 28px 70px rgba(15, 23, 42, 0.25);
+  padding: 22px;
   opacity: 0;
   pointer-events: none;
   transform: translateY(8px);
@@ -1519,19 +1519,27 @@ td {
 }
 
 .asset-modal-summary > div {
-  background: #f8fafc;
+  background: #ffffff;
   border: 1px solid #e2e8f0;
-  border-radius: 10px;
-  padding: 10px;
+  border-radius: 14px;
+  padding: 14px;
   display: grid;
   gap: 6px;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
 }
 
 .asset-modal-layout {
   display: grid;
   gap: 16px;
-  grid-template-columns: minmax(0, 1.2fr) minmax(320px, 0.8fr);
+  grid-template-columns: minmax(0, 1.25fr) minmax(340px, 0.75fr);
   align-items: start;
+}
+
+.asset-modal-layout .card {
+  border-radius: 16px;
+  border: 1px solid #dbe4f0;
+  background: #ffffff;
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.06);
 }
 
 .asset-history {
@@ -2153,6 +2161,60 @@ td {
 .capital-form {
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
   align-items: end;
+}
+
+
+.modern-asset-form {
+  display: grid;
+  gap: 16px;
+  grid-template-columns: 1fr;
+  align-items: stretch;
+}
+
+.asset-form-section {
+  background: #f8fafc;
+  border: 1px solid #dbe4f0;
+  border-radius: 14px;
+  padding: 14px;
+  display: grid;
+  gap: 12px;
+}
+
+.asset-form-section h4 {
+  margin: 0;
+  font-size: 13px;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+  color: #475569;
+}
+
+.asset-form-grid {
+  display: grid;
+  gap: 12px;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.asset-form-grid .full {
+  grid-column: 1 / -1;
+}
+
+.asset-form-footer {
+  display: flex;
+  justify-content: flex-end;
+}
+
+@media (max-width: 900px) {
+  .asset-form-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .asset-form-footer {
+    justify-content: stretch;
+  }
+
+  .asset-form-footer .button {
+    width: 100%;
+  }
 }
 
 .capital-alerts {

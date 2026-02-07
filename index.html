@@ -215,7 +215,8 @@
                 <div class="form two-columns">
                   <label>
                     Категория
-                    <input type="text" id="capitalCategoryName" placeholder="Например, Вклад" required />
+                    <input type="text" id="capitalCategoryName" placeholder="Например, Вклад" list="capitalCategoryList" required />
+                    <datalist id="capitalCategoryList"></datalist>
                   </label>
                   <label>
                     Тип категории
@@ -223,7 +224,8 @@
                   </label>
                   <label>
                     Подкатегория (опционально)
-                    <input type="text" id="capitalSubcategoryName" placeholder="Например, Сбербанк" />
+                    <input type="text" id="capitalSubcategoryName" placeholder="Например, Сбербанк" list="capitalSubcategoryList" />
+                    <datalist id="capitalSubcategoryList"></datalist>
                   </label>
                   <button id="addCapitalCategory" class="button secondary" type="button">Добавить</button>
                 </div>
@@ -494,65 +496,85 @@
                 <button id="capitalAssetClose" type="button" class="button secondary">Закрыть</button>
               </div>
             </div>
-            <form id="capitalAssetForm" class="form capital-form">
-              <label>
-                Название
-                <input type="text" id="capitalAssetName" placeholder="Например, Сбер вклад" required />
-              </label>
-              <label>
-                Категория
-                <select id="capitalAssetType">
-                  <option value="cash">Наличные</option>
-                  <option value="bank">Банк</option>
-                  <option value="deposit">Вклад</option>
-                  <option value="investment">Инвестиции</option>
-                  <option value="real_estate">Недвижимость</option>
-                  <option value="other">Другое</option>
-                </select>
-              </label>
-              <label>
-                Подкатегория
-                <select id="capitalAssetSubcategory"></select>
-              </label>
-              <label>
-                Валюта
-                <select id="capitalAssetCurrency">
-                  <option value="RUB">RUB</option>
-                  <option value="USD">USD</option>
-                  <option value="EUR">EUR</option>
-                  <option value="CNY">CNY</option>
-                </select>
-              </label>
-              <label>
-                Сумма (опционально)
-                <input type="number" id="capitalAssetAmount" min="0" step="0.01" />
-              </label>
-              <label>
-                Вложено
-                <input type="number" id="capitalAssetInvested" min="0" step="0.01" required />
-              </label>
-              <label>
-                Дата окончания вклада
-                <input type="date" id="capitalAssetMaturityDate" />
-              </label>
-              <label>
-                Ликвидность
-                <select id="capitalAssetLiquidity">
-                  <option value="high">Можно вывести сразу</option>
-                  <option value="medium">Нужно 1–3 дня</option>
-                  <option value="low">Сложно/долго вывести</option>
-                  <option value="locked">Заблокировано до даты</option>
-                </select>
-              </label>
-              <label>
-                Ожидаемая прибыль
-                <input type="number" id="capitalAssetExpectedProfit" min="0" step="0.01" />
-              </label>
-              <label class="full">
-                Комментарий
-                <input type="text" id="capitalAssetNote" placeholder="Опционально" />
-              </label>
-              <button type="submit" class="button primary">Добавить актив</button>
+            <form id="capitalAssetForm" class="form capital-form modern-asset-form">
+              <section class="asset-form-section">
+                <h4>Основное</h4>
+                <div class="asset-form-grid">
+                  <label class="full">
+                    Название
+                    <input type="text" id="capitalAssetName" placeholder="Например, Фондовый рынок — Мама" required />
+                  </label>
+                  <label>
+                    Категория
+                    <select id="capitalAssetType">
+                      <option value="cash">Наличные</option>
+                      <option value="bank">Банк</option>
+                      <option value="deposit">Вклад</option>
+                      <option value="investment">Инвестиции</option>
+                      <option value="real_estate">Недвижимость</option>
+                      <option value="other">Другое</option>
+                    </select>
+                  </label>
+                  <label>
+                    Подкатегория
+                    <select id="capitalAssetSubcategory"></select>
+                  </label>
+                  <label>
+                    Валюта
+                    <select id="capitalAssetCurrency">
+                      <option value="RUB">RUB</option>
+                      <option value="USD">USD</option>
+                      <option value="EUR">EUR</option>
+                      <option value="CNY">CNY</option>
+                    </select>
+                  </label>
+                  <label>
+                    Ликвидность
+                    <select id="capitalAssetLiquidity">
+                      <option value="high">Можно вывести сразу</option>
+                      <option value="medium">Нужно 1–3 дня</option>
+                      <option value="low">Сложно/долго вывести</option>
+                      <option value="locked">Заблокировано до даты</option>
+                    </select>
+                  </label>
+                </div>
+              </section>
+
+              <section class="asset-form-section">
+                <h4>Суммы и доходность</h4>
+                <div class="asset-form-grid">
+                  <label>
+                    Сумма (опционально)
+                    <input type="number" id="capitalAssetAmount" min="0" step="0.01" />
+                  </label>
+                  <label>
+                    Вложено
+                    <input type="number" id="capitalAssetInvested" min="0" step="0.01" required />
+                  </label>
+                  <label>
+                    Ожидаемая прибыль
+                    <input type="number" id="capitalAssetExpectedProfit" min="0" step="0.01" />
+                  </label>
+                  <label>
+                    Дата окончания вклада
+                    <input type="date" id="capitalAssetMaturityDate" />
+                  </label>
+                </div>
+              </section>
+
+              <section class="asset-form-section">
+                <h4>Комментарий</h4>
+                <div class="asset-form-grid">
+                  <label class="full">
+                    Заметка
+                    <input type="text" id="capitalAssetNote" placeholder="Опционально" />
+                  </label>
+                </div>
+              </section>
+
+              <div class="asset-form-footer">
+                <button type="submit" class="button primary">Добавить актив</button>
+              </div>
             </form>
           </div>
 
