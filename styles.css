@@ -2095,3 +2095,34 @@ td {
   gap: 0.4rem;
   justify-content: flex-end;
 }
+
+
+.transaction-tools {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+  align-items: end;
+}
+
+.transaction-filters {
+  display: grid;
+  grid-template-columns: 1.4fr 1fr 1fr auto auto;
+  gap: 10px;
+  margin-bottom: 12px;
+}
+
+.transaction-filters input,
+.transaction-filters select {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+}
+
+.backup-center {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: #f8fafc;
+  border: 1px dashed var(--border);
+  border-radius: 10px;
+  font-size: 13px;
+}

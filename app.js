@@ -14,6 +14,16 @@ const categorySelect = document.getElementById("category");
 const subcategorySelect = document.getElementById("subcategory");
 const categoryTypeSelect = document.getElementById("categoryType");
 const categoryList = document.getElementById("categoryList");
+const quickAddInput = document.getElementById("quickAddInput");
+const quickAddButton = document.getElementById("quickAddButton");
+const transactionTemplateSelect = document.getElementById("transactionTemplateSelect");
+const saveTransactionTemplateButton = document.getElementById("saveTransactionTemplate");
+const transactionSearchInput = document.getElementById("transactionSearch");
+const transactionTypeFilter = document.getElementById("transactionTypeFilter");
+const transactionCategoryFilter = document.getElementById("transactionCategoryFilter");
+const selectAllTransactionsButton = document.getElementById("selectAllTransactions");
+const deleteSelectedTransactionsButton = document.getElementById("deleteSelectedTransactions");
+const lastBackupAt = document.getElementById("lastBackupAt");
 const addCategoryButton = document.getElementById("addCategory");
 const newCategoryInput = document.getElementById("newCategory");
 const newSubcategoryInput = document.getElementById("newSubcategory");
@@ -154,6 +164,8 @@ const STORAGE_KEY = "budget.transactions.v2";
 const CATEGORY_KEY = "budget.categories.v3";
 const VIEW_KEY = "budget.view.active";
 const LAYOUT_KEY = "budget.layout";
+const TX_TEMPLATES_KEY = "budget.tx.templates.v1";
+const BACKUP_META_KEY = "budget.backup.meta.v1";
 const CHART_LIMIT = 6;
 const CAPITAL_KEY_V2 = "budget.capital.v2";
 const CAPITAL_KEY_V1 = "budget.capital.v1";
@@ -529,6 +541,9 @@ let showAllSubcategories = false;
 let showAllExpenseCategories = false;
 let categoryFilter = "all";
 let reportGranularity = "daily";
+let transactionFilters = { search: "", type: "all", category: "all" };
+let selectedTransactionIds = new Set();
+let transactionTemplates = [];
 let reportRange = { start: "", end: "" };
 let capitalState = null;
 let capitalOverviewFilter = "all";
@@ -761,13 +776,93 @@ const updateSummary = () => {
   expensePercentEl.textContent = `${percent.toFixed(1)}% от доходов`;
 };
 
+const loadTransactionTemplates = async () => {
+  try {
+    const raw = await Storage.get(TX_TEMPLATES_KEY);
+    transactionTemplates = raw ? JSON.parse(raw) : [];
+  } catch {
+    transactionTemplates = [];
+  }
+};
+
+const saveTransactionTemplates = async () => {
+  await Storage.set(TX_TEMPLATES_KEY, JSON.stringify(transactionTemplates));
+};
+
+const renderTransactionTemplates = () => {
+  if (!transactionTemplateSelect) {
+    return;
+  }
+  transactionTemplateSelect.innerHTML = '<option value="">Выберите шаблон</option>';
+  transactionTemplates.forEach((item, index) => {
+    const option = document.createElement("option");
+    option.value = String(index);
+    option.textContent = `${item.category} · ${item.subcategory || "—"} · ${item.amount}`;
+    transactionTemplateSelect.appendChild(option);
+  });
+};
+
+const renderBackupMeta = async () => {
+  if (!lastBackupAt) {
+    return;
+  }
+  const raw = await Storage.get(BACKUP_META_KEY);
+  if (!raw) {
+    lastBackupAt.textContent = "Последний backup: —";
+    return;
+  }
+  try {
+    const meta = JSON.parse(raw);
+    lastBackupAt.textContent = `Последний backup: ${new Date(meta.ts).toLocaleString("ru-RU")}`;
+  } catch {
+    lastBackupAt.textContent = "Последний backup: —";
+  }
+};
+
+const getFilteredTransactions = () => {
+  const search = transactionFilters.search.trim().toLowerCase();
+  return transactions.filter((item) => {
+    if (transactionFilters.type !== "all" && item.type !== transactionFilters.type) {
+      return false;
+    }
+    if (transactionFilters.category !== "all" && item.category !== transactionFilters.category) {
+      return false;
+    }
+    if (!search) {
+      return true;
+    }
+    const hay = `${item.note} ${item.category} ${item.subcategory} ${item.amount} ${item.date}`.toLowerCase();
+    return hay.includes(search);
+  });
+};
+
+const renderTransactionFilterOptions = () => {
+  if (!transactionCategoryFilter) {
+    return;
+  }
+  const previous = transactionFilters.category;
+  const categoriesSet = new Set(transactions.map((item) => item.category));
+  transactionCategoryFilter.innerHTML = '<option value="all">Все категории</option>';
+  [...categoriesSet].sort((a, b) => a.localeCompare(b, "ru")).forEach((name) => {
+    const option = document.createElement("option");
+    option.value = name;
+    option.textContent = name;
+    transactionCategoryFilter.appendChild(option);
+  });
+  transactionFilters.category = categoriesSet.has(previous) ? previous : "all";
+  transactionCategoryFilter.value = transactionFilters.category;
+};
+
 const renderTable = () => {
   tableBody.innerHTML = "";
+  const filtered = getFilteredTransactions();
+  const displayList = sortTransactionsForHistory(filtered);
+  renderTransactionFilterOptions();
 
   if (transactions.length === 0) {
     const row = document.createElement("tr");
     const cell = document.createElement("td");
-    cell.colSpan = 7;
+    cell.colSpan = 8;
     cell.textContent = "Пока нет операций. Добавьте первую запись.";
     cell.classList.add("hint");
     row.appendChild(cell);
@@ -775,26 +870,41 @@ const renderTable = () => {
     return;
   }
 
-  const displayList = sortTransactionsForHistory(transactions);
+  if (displayList.length === 0) {
+    const row = document.createElement("tr");
+    const cell = document.createElement("td");
+    cell.colSpan = 8;
+    cell.textContent = "По выбранным фильтрам операций не найдено.";
+    cell.classList.add("hint");
+    row.appendChild(cell);
+    tableBody.appendChild(row);
+    return;
+  }
 
   displayList.forEach((item) => {
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td>${item.date}</td>
-        <td><span class="tag ${item.type}">${formatType(item.type)}</span></td>
-        <td>${item.category}</td>
-        <td>${item.subcategory || "—"}</td>
-        <td>${currencyFormatter.format(item.amount)}</td>
-        <td>${item.note || "—"}</td>
-        <td>
-          <div class="table-actions">
-            <button class="button secondary" data-action="edit-tx" data-id="${item.id}">Изменить</button>
-            <button class="button secondary" data-action="delete-tx" data-id="${item.id}">Удалить</button>
-          </div>
-        </td>
-      `;
-      tableBody.appendChild(row);
-    });
+    const row = document.createElement("tr");
+    const checked = selectedTransactionIds.has(item.id) ? "checked" : "";
+    row.innerHTML = `
+      <td><input type="checkbox" data-action="select-tx" data-id="${item.id}" ${checked} /></td>
+      <td>${item.date}</td>
+      <td><span class="tag ${item.type}">${formatType(item.type)}</span></td>
+      <td>${item.category}</td>
+      <td>${item.subcategory || "—"}</td>
+      <td>${currencyFormatter.format(item.amount)}</td>
+      <td>${item.note || "—"}</td>
+      <td>
+        <div class="table-actions">
+          <button class="button secondary" data-action="edit-tx" data-id="${item.id}">Изменить</button>
+          <button class="button secondary" data-action="delete-tx" data-id="${item.id}">Удалить</button>
+        </div>
+      </td>
+    `;
+    tableBody.appendChild(row);
+  });
+
+  if (deleteSelectedTransactionsButton) {
+    deleteSelectedTransactionsButton.disabled = selectedTransactionIds.size === 0;
+  }
 };
 
 const editTransaction = (id) => {
@@ -3857,6 +3967,7 @@ const bindEvents = () => {
       recordUndo("addTx", { id: transactions[transactions.length - 1].id });
       Storage.set(STORAGE_KEY, JSON.stringify(transactions));
       render();
+      showToast("Операция сохранена");
       resetForm();
       updateTransactionFormState();
     }, "добавление операции"));
@@ -3950,6 +4061,18 @@ on(undoButton, "click", undoLastAction, "undo");
       return;
     }
 
+    if (action === "select-tx") {
+      if (target.checked) {
+        selectedTransactionIds.add(id);
+      } else {
+        selectedTransactionIds.delete(id);
+      }
+      if (deleteSelectedTransactionsButton) {
+        deleteSelectedTransactionsButton.disabled = selectedTransactionIds.size === 0;
+      }
+      return;
+    }
+
     if (action === "edit-tx") {
       editTransaction(id);
       return;
@@ -3965,10 +4088,111 @@ on(undoButton, "click", undoLastAction, "undo");
       return;
     }
     transactions = transactions.filter((item) => item.id !== id);
+    selectedTransactionIds.delete(id);
     recordUndo("deleteTx", { item: deleted, index });
     Storage.set(STORAGE_KEY, JSON.stringify(transactions));
     render();
   }, "удаление/редактирование операции");
+
+
+  on(transactionSearchInput, "input", (event) => {
+    transactionFilters.search = event.target.value;
+    renderTable();
+  }, "поиск операций");
+
+  on(transactionTypeFilter, "change", (event) => {
+    transactionFilters.type = event.target.value;
+    renderTable();
+  }, "фильтр типа операции");
+
+  on(transactionCategoryFilter, "change", (event) => {
+    transactionFilters.category = event.target.value;
+    renderTable();
+  }, "фильтр категории операции");
+
+  on(selectAllTransactionsButton, "click", () => {
+    const filtered = getFilteredTransactions();
+    selectedTransactionIds = new Set(filtered.map((item) => item.id));
+    renderTable();
+  }, "выбрать операции");
+
+  on(deleteSelectedTransactionsButton, "click", () => {
+    if (selectedTransactionIds.size === 0) {
+      return;
+    }
+    if (!confirm(`Удалить выбранные операции: ${selectedTransactionIds.size}?`)) {
+      return;
+    }
+    transactions = transactions.filter((item) => !selectedTransactionIds.has(item.id));
+    selectedTransactionIds = new Set();
+    Storage.set(STORAGE_KEY, JSON.stringify(transactions));
+    showToast("Выбранные операции удалены");
+    render();
+  }, "массовое удаление операций");
+
+  on(saveTransactionTemplateButton, "click", async () => {
+    const type = document.getElementById("type").value;
+    const category = categorySelect.value;
+    const subcategory = subcategorySelect.value || "";
+    const amount = Number.parseFloat(document.getElementById("amount").value);
+    if (!category || !Number.isFinite(amount) || amount <= 0) {
+      showError("Для шаблона укажите категорию и сумму > 0.");
+      return;
+    }
+    transactionTemplates.push({ type, category, subcategory, amount });
+    await saveTransactionTemplates();
+    renderTransactionTemplates();
+    showToast("Шаблон сохранен");
+  }, "сохранение шаблона");
+
+  on(transactionTemplateSelect, "change", (event) => {
+    const index = Number.parseInt(event.target.value, 10);
+    if (!Number.isFinite(index) || !transactionTemplates[index]) {
+      return;
+    }
+    const item = transactionTemplates[index];
+    document.getElementById("type").value = item.type;
+    renderCategoryOptions();
+    categorySelect.value = item.category;
+    updateSubcategoryOptions(item.category);
+    if (item.subcategory) {
+      subcategorySelect.value = item.subcategory;
+    }
+    document.getElementById("amount").value = item.amount;
+    updateTransactionFormState();
+  }, "выбор шаблона");
+
+  on(quickAddButton, "click", () => {
+    const value = quickAddInput.value.trim();
+    if (!value) {
+      return;
+    }
+    const parts = value.split(/\s+/);
+    const amount = Number.parseFloat(parts[0].replace(",", "."));
+    if (!Number.isFinite(amount) || amount <= 0) {
+      showError("Быстрое добавление: первым значением укажите сумму.");
+      return;
+    }
+    const category = parts[1] || categorySelect.value;
+    const note = parts.slice(2).join(" ");
+    const nowDate = document.getElementById("date").value || new Date().toISOString().slice(0, 10);
+    const type = document.getElementById("type").value;
+    transactions.push({
+      id: generateId("tx"),
+      date: nowDate,
+      type,
+      category,
+      subcategory: "",
+      amount,
+      note,
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+    });
+    Storage.set(STORAGE_KEY, JSON.stringify(transactions));
+    quickAddInput.value = "";
+    showToast("Операция добавлена быстро");
+    render();
+  }, "быстрое добавление");
 
 on(exportButton, "click", () => {
   if (transactions.length === 0) {
@@ -4026,9 +4250,18 @@ onAll(reportRangeButtons, "click", (event) => {
   reportRangeButtons.forEach((item) => item.classList.remove("is-active"));
   event.currentTarget.classList.add("is-active");
   const range = event.currentTarget.dataset.reportRange;
+  const now = new Date();
   if (range === "all") {
     const bounds = getDateBounds(transactions);
     setReportRange(bounds.start, bounds.end);
+  } else if (range === "this-month") {
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    setReportRange(start.toISOString().slice(0, 10), end.toISOString().slice(0, 10));
+  } else if (range === "prev-month") {
+    const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const end = new Date(now.getFullYear(), now.getMonth(), 0);
+    setReportRange(start.toISOString().slice(0, 10), end.toISOString().slice(0, 10));
   } else {
     const days = Number.parseInt(range, 10);
     const bounds = getDateBounds(transactions);
@@ -4507,6 +4740,9 @@ onAll(capitalTabs, "click", (event) => {
   on(backupButton, "click", () => {
     const payload = buildBackupPayload();
     downloadJson(payload, `budget-backup-${new Date().toISOString().slice(0, 10)}.json`);
+    Storage.set(BACKUP_META_KEY, JSON.stringify({ ts: Date.now() }));
+    renderBackupMeta();
+    showToast("Backup сохранен");
   }, "backup");
 
   on(restoreInput, "change", async (event) => {
@@ -4528,6 +4764,8 @@ onAll(capitalTabs, "click", (event) => {
       capitalSetTab("overview");
       setLayout(currentLayout);
       setView(activeView);
+      showToast("Backup восстановлен");
+      renderBackupMeta();
     } catch (error) {
       showError("Не удалось восстановить backup.");
     } finally {
@@ -4539,6 +4777,7 @@ onAll(capitalTabs, "click", (event) => {
 const loadState = async () => {
   transactions = await loadTransactions();
   categories = await loadCategories();
+  await loadTransactionTemplates();
   capitalState = await migrateCapitalState();
   const capitalMigrated = normalizeCapitalState();
   if (capitalMigrated) {
@@ -4566,6 +4805,8 @@ const initializeApp = safeExec(async () => {
 
   bindEvents();
   renderCategories();
+  renderTransactionTemplates();
+  await renderBackupMeta();
   resetForm();
   initializeReportRange();
   updateUndoState();
