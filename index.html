@@ -212,20 +212,23 @@
               </div>
 
               <div class="category-panel" data-category-panel="capital">
-                <h3>Категории активов</h3>
-                <p class="hint">Категории и подкатегории капитала задаются вручную.</p>
-                <form id="capitalCategoryForm" class="form compact-form">
+                <h3>Добавить категорию или подкатегорию</h3>
+                <div class="form two-columns">
                   <label>
                     Категория
                     <input type="text" id="capitalCategoryName" placeholder="Например, Вклад" required />
                   </label>
                   <label>
-                    Подкатегория
+                    Тип категории
+                    <input type="text" value="Капитал" disabled />
+                  </label>
+                  <label>
+                    Подкатегория (опционально)
                     <input type="text" id="capitalSubcategoryName" placeholder="Например, Сбербанк" />
                   </label>
-                  <button type="submit" class="button secondary">Добавить</button>
-                </form>
-                <div id="capitalCategoryManager" class="capital-category-list"></div>
+                  <button id="addCapitalCategory" class="button secondary" type="button">Добавить</button>
+                </div>
+                <p class="hint">Если категория уже существует, будет добавлена подкатегория.</p>
               </div>
             </div>
           </section>
@@ -246,6 +249,19 @@
               Категории верхнего уровня
             </div>
             <div id="categoryManager" class="category-manager"></div>
+          </section>
+
+          <section class="card category-panel" data-category-panel="capital">
+            <div class="category-header">
+              <div>
+                <h2>Управление категориями капитала</h2>
+                <p class="hint">Перетаскивайте подкатегории и категории между карточками.</p>
+              </div>
+            </div>
+            <div id="capitalCategoryDropzone" class="category-dropzone">
+              Категории верхнего уровня
+            </div>
+            <div id="capitalCategoryManager" class="category-manager"></div>
           </section>
         </section>
 
@@ -306,6 +322,7 @@
               </div>
               <div class="line-chart">
                 <svg id="reportLineChart" viewBox="0 0 720 260" aria-label="График доходов и расходов"></svg>
+                <div id="reportChartTooltip" class="chart-tooltip is-hidden"></div>
                 <div class="line-legend">
                   <span><i class="legend-dot income"></i>Доходы</span>
                   <span><i class="legend-dot expense"></i>Расходы</span>
