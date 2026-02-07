@@ -120,6 +120,8 @@ const assetOperationForm = document.getElementById("assetOperationForm");
 const assetOperationType = document.getElementById("assetOperationType");
 const assetOperationAmount = document.getElementById("assetOperationAmount");
 const assetOperationNote = document.getElementById("assetOperationNote");
+const assetDetailsEdit = document.getElementById("assetDetailsEdit");
+const assetDetailsDelete = document.getElementById("assetDetailsDelete");
 const toast = document.getElementById("toast");
 const transactionEditOverlay = document.getElementById("transactionEditOverlay");
 const transactionEditModal = document.getElementById("transactionEditModal");
@@ -2917,29 +2919,21 @@ const renderCapitalAssets = () => {
               </span>
             </div>
             <div class="asset-tile-metrics">
-              <span class="asset-values">
+              <div class="asset-primary-row">
                 <span class="asset-label">Сейчас</span>
-                <span class="asset-amount">${amountLabel}</span>
-              </span>
-              <span class="asset-values">
-                <span class="asset-label">Вложено</span>
-                <span class="asset-invested">${investedLabel}</span>
-              </span>
-              <span class="asset-profit-block">
-                <span class="asset-label">Прибыль</span>
-                <span class="asset-profit ${profitMeta.profit < 0 ? "is-negative" : ""}">${profitLabel}</span>
-                <span class="asset-profit-percent ${showPercentWarning ? "is-warning" : ""}">${percentLabel}</span>
-              </span>
+                <strong class="asset-amount">${amountLabel}</strong>
+              </div>
+              <div class="asset-secondary-rows">
+                <span class="asset-secondary-row"><span>Вложено</span><strong>${investedLabel}</strong></span>
+                <span class="asset-secondary-row"><span>Прибыль</span><strong class="asset-profit ${profitMeta.profit < 0 ? "is-negative" : ""}">${profitLabel}</strong></span>
+              </div>
+              <span class="asset-profit-percent ${showPercentWarning ? "is-warning" : ""}">${percentLabel}</span>
             </div>
             <div class="asset-tile-bottom">
               <span class="chip chip-liquidity">${liquidityLabel}</span>
               ${missingRateChip}
               ${showPercentWarning ? "<span class='chip chip-warning'>проверь данные</span>" : ""}
-              <span class="asset-quick-actions">
-                <button class="chip" data-action="edit-asset" data-id="${asset.id}" type="button" aria-label="Редактировать">✎</button>
-                <button class="chip danger" data-action="delete-asset" data-id="${asset.id}" type="button" aria-label="Удалить">🗑</button>
-              </span>
-              <span class="asset-toggle-label">Открыть</span>
+              <span class="asset-toggle-label">Подробнее</span>
             </div>
           </div>
         `;
@@ -3345,6 +3339,7 @@ const openAssetDetailsModal = (assetId) => {
   }
   if (assetDetailsProfit) {
     assetDetailsProfit.textContent = amountBase == null || investedBase == null ? "—" : capitalFormatMoney(profitMeta.profit);
+    assetDetailsProfit.classList.toggle("is-negative", profitMeta.profit < 0);
   }
   renderAssetHistory(asset);
   setAssetDetailsModal(true);
@@ -4753,6 +4748,37 @@ onAll(capitalTabs, "click", (event) => {
     }
     showToast("Запись добавлена");
   }, "asset history add");
+
+  on(assetDetailsEdit, "click", () => {
+    if (!selectedAssetDetailsId) {
+      return;
+    }
+    const asset = capitalState.assets.find((item) => item.id === selectedAssetDetailsId);
+    if (!asset) {
+      return;
+    }
+    setAssetDetailsModal(false);
+    capitalFillAssetForm(asset);
+  }, "asset details edit");
+
+  on(assetDetailsDelete, "click", () => {
+    if (!selectedAssetDetailsId) {
+      return;
+    }
+    const asset = capitalState.assets.find((item) => item.id === selectedAssetDetailsId);
+    if (!asset) {
+      return;
+    }
+    if (!confirm("Удалить актив?")) {
+      return;
+    }
+    capitalState.assets = capitalState.assets.filter((item) => item.id !== selectedAssetDetailsId);
+    saveCapitalV2(capitalState);
+    setAssetDetailsModal(false);
+    selectedAssetDetailsId = null;
+    showToast("Актив удален");
+    renderCapitalView();
+  }, "asset details delete");
 
   on(capitalDebtForm, "submit", (event) => {
     event.preventDefault();
