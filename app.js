@@ -119,7 +119,6 @@ const capitalAssetViewButtons = document.querySelectorAll("[data-capital-asset-v
 const capitalAssetPanels = document.querySelectorAll("[data-capital-asset-panel]");
 const capitalCategoryForm = document.getElementById("capitalCategoryForm");
 const capitalCategoryName = document.getElementById("capitalCategoryName");
-const capitalCategoryList = document.getElementById("capitalCategoryList");
 const capitalSubcategoryName = document.getElementById("capitalSubcategoryName");
 const capitalCategoryManager = document.getElementById("capitalCategoryManager");
 const capitalWeightedApr = document.getElementById("capitalWeightedApr");
@@ -216,7 +215,10 @@ const palette = [
 
 const formatType = (type) => (type === "income" ? "Доход" : "Расход");
 
-const DB_NAME = "budgetAppDb";
+const APP_SCOPE = (window.location.pathname || "/")
+  .replace(/[^a-zA-Z0-9]/g, "_")
+  .replace(/^_+|_+$/g, "") || "root";
+const DB_NAME = `budgetAppDb.${APP_SCOPE}`;
 const DB_VERSION = 1;
 const DB_STORE = "kv";
 
@@ -627,9 +629,6 @@ const normalizeCapitalState = () => {
       subs: [...subs],
     }));
   }
-  if (!capitalState.assetCategories.find((item) => item.name === "Без категории")) {
-    capitalState.assetCategories.push({ name: "Без категории", subs: [] });
-  }
   capitalState.debts = (capitalState.debts || []).map((debt) => ({
     id: debt.id || generateId("debt"),
     createdAt: debt.createdAt || debt.updatedAt || new Date().toISOString(),
@@ -679,6 +678,10 @@ const sortTransactionsForHistory = (source) =>
   source
     .slice()
     .sort((a, b) => {
+      const byDate = String(b.date || "").localeCompare(String(a.date || ""));
+      if (byDate !== 0) {
+        return byDate;
+      }
       const byCreated = getTransactionSortTimestamp(b) - getTransactionSortTimestamp(a);
       if (byCreated !== 0) {
         return byCreated;
@@ -1042,6 +1045,7 @@ const renderLineChart = (target, data) => {
     line.setAttribute("stroke", color);
     line.setAttribute("stroke-width", "3.5");
     line.setAttribute("stroke-linecap", "round");
+    line.classList.add("report-line");
     return line;
   };
 
@@ -1065,16 +1069,20 @@ const renderLineChart = (target, data) => {
     return path;
   };
 
-  const drawPoints = (values, color) => {
+  const drawPoints = (values, color, typeLabel) => {
     const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
     values.forEach((value, index) => {
       const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
       circle.setAttribute("cx", scaleX(index));
       circle.setAttribute("cy", scaleY(value));
-      circle.setAttribute("r", "4");
+      circle.setAttribute("r", "4.5");
       circle.setAttribute("fill", "#fff");
       circle.setAttribute("stroke", color);
-      circle.setAttribute("stroke-width", "2");
+      circle.setAttribute("stroke-width", "2.5");
+      circle.classList.add("report-point");
+      const title = document.createElementNS("http://www.w3.org/2000/svg", "title");
+      title.textContent = `${data[index].label} • ${typeLabel}: ${currencyFormatter.format(value)}`;
+      circle.appendChild(title);
       group.appendChild(circle);
     });
     return group;
@@ -1126,8 +1134,8 @@ const renderLineChart = (target, data) => {
   const expenseArea = drawArea(data.map((item) => item.expense), "#ea580c");
   const incomeLine = drawLine(data.map((item) => item.income), "#16a34a");
   const expenseLine = drawLine(data.map((item) => item.expense), "#ea580c");
-  const incomePoints = drawPoints(data.map((item) => item.income), "#16a34a");
-  const expensePoints = drawPoints(data.map((item) => item.expense), "#ea580c");
+  const incomePoints = drawPoints(data.map((item) => item.income), "#16a34a", "Доходы");
+  const expensePoints = drawPoints(data.map((item) => item.expense), "#ea580c", "Расходы");
 
   target.appendChild(background);
   target.appendChild(grid);
@@ -2147,17 +2155,10 @@ const renderCapitalCategories = () => {
   }
   capitalCategoryManager.innerHTML = "";
   capitalSubcategoryList.innerHTML = "";
-  if (capitalCategoryList) {
-    capitalCategoryList.innerHTML = "";
-  }
+
 
   const sorted = capitalizeAssetCategories();
   sorted.forEach((category) => {
-    if (capitalCategoryList) {
-      const categoryOption = document.createElement("option");
-      categoryOption.value = category.name;
-      capitalCategoryList.appendChild(categoryOption);
-    }
     category.subs.forEach((sub) => {
       const subOption = document.createElement("option");
       subOption.value = sub;
@@ -2740,6 +2741,7 @@ const renderCapitalHistoryChart = () => {
     line.setAttribute("stroke", color);
     line.setAttribute("stroke-width", "3");
     line.setAttribute("stroke-linecap", "round");
+    line.classList.add("report-line");
     return line;
   };
 
@@ -3488,7 +3490,9 @@ const render = (viewId = activeView) => {
   }
   if (viewId === "transactions") {
     updateSummary();
+    renderCategoryOptions();
     renderTable();
+    updateTransactionFormState();
     return;
   }
   if (viewId === "categories") {
@@ -3957,25 +3961,9 @@ onAll(capitalTabs, "click", (event) => {
     const categoryName = target.dataset.capitalCategoryDelete;
     const subcategoryName = target.dataset.subcategory;
     if (categoryName && !subcategoryName) {
-      if (categoryName === "Без категории") {
-        showError("Категорию «Без категории» нельзя удалить.");
-        return;
-      }
-      capitalState.assets = capitalState.assets.map((asset) => {
-        if (asset.category !== categoryName) {
-          return asset;
-        }
-        return {
-          ...asset,
-          category: "Без категории",
-          subcategory: "",
-          updatedAt: capitalNowIso(),
-        };
-      });
       capitalState.assetCategories = capitalState.assetCategories.filter((category) => category.name !== categoryName);
       saveCapitalV2(capitalState);
       renderCapitalCategories();
-      render("capital");
       return;
     }
     if (categoryName && subcategoryName) {

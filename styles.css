@@ -529,6 +529,24 @@ body {
   gap: 12px;
 }
 
+.line-chart svg {
+  filter: drop-shadow(0 8px 20px rgba(15, 23, 42, 0.08));
+}
+
+.report-line {
+  opacity: 0.95;
+}
+
+.report-point {
+  cursor: pointer;
+  transition: r 0.15s ease, filter 0.15s ease;
+}
+
+.report-point:hover {
+  r: 6;
+  filter: drop-shadow(0 0 8px rgba(37, 99, 235, 0.35));
+}
+
 .line-legend {
   display: flex;
   gap: 16px;
@@ -1031,6 +1049,12 @@ td {
 .asset-list-count {
   color: var(--muted);
   font-size: 13px;
+}
+
+.asset-list-actions {
+  display: flex;
+  align-items: center;
+  gap: 12px;
 }
 
 .asset-filters {
