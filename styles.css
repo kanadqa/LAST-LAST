@@ -2670,3 +2670,175 @@ table tbody tr:hover {
 #capitalCategoryModalForm label.is-hidden {
   display: none;
 }
+
+
+/* Modern redesign v2: asset details workspace */
+#assetDetailsOverlay {
+  backdrop-filter: blur(6px);
+  background: rgba(15, 23, 42, 0.46);
+}
+
+.asset-fullscreen-modal {
+  inset: auto;
+  top: 50%;
+  left: 50%;
+  width: min(1460px, 96vw);
+  height: min(920px, 94vh);
+  transform: translate(-50%, -48%) scale(0.99);
+  border-radius: 24px;
+  border: 1px solid rgba(148, 163, 184, 0.35);
+  background:
+    radial-gradient(1200px 320px at 8% -10%, rgba(99, 102, 241, 0.18), transparent 55%),
+    radial-gradient(900px 280px at 100% 0%, rgba(14, 165, 233, 0.13), transparent 50%),
+    linear-gradient(180deg, #f8fbff 0%, #eef4ff 100%);
+  box-shadow: 0 36px 80px rgba(2, 6, 23, 0.35);
+  padding: 24px;
+}
+
+.asset-fullscreen-modal.is-open {
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.asset-fullscreen-header {
+  border-bottom: none;
+  padding-bottom: 0;
+  align-items: center;
+}
+
+.asset-fullscreen-header h2 {
+  font-size: clamp(30px, 3.2vw, 52px);
+  font-weight: 800;
+}
+
+.asset-fullscreen-header .button {
+  border-radius: 999px;
+  padding-inline: 20px;
+  background: rgba(226, 232, 240, 0.9);
+}
+
+.asset-modal-summary {
+  gap: 14px;
+}
+
+.asset-modal-summary > div {
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+}
+
+.asset-modal-summary > div:nth-child(1) {
+  background: linear-gradient(145deg, #ffffff 0%, #ecfeff 100%);
+}
+
+.asset-modal-summary > div:nth-child(2) {
+  background: linear-gradient(145deg, #ffffff 0%, #eef2ff 100%);
+}
+
+.asset-modal-summary > div:nth-child(3) {
+  background: linear-gradient(145deg, #ffffff 0%, #f5f3ff 100%);
+}
+
+.asset-modal-summary > div strong {
+  font-size: clamp(24px, 2.3vw, 36px);
+}
+
+.asset-modal-layout {
+  gap: 18px;
+  grid-template-columns: minmax(0, 1.38fr) minmax(360px, 0.62fr);
+}
+
+.asset-modal-layout .card {
+  border-radius: 20px;
+  border: 1px solid rgba(148, 163, 184, 0.28);
+  box-shadow: 0 16px 40px rgba(15, 23, 42, 0.08);
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(3px);
+}
+
+.asset-history {
+  max-height: min(62vh, 620px);
+  padding-right: 8px;
+}
+
+.asset-history-item {
+  position: relative;
+  padding: 14px 14px 14px 16px;
+  border-radius: 14px;
+  border-left-width: 3px;
+}
+
+.asset-history-item::after {
+  content: "";
+  position: absolute;
+  left: -7px;
+  top: 18px;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  border: 2px solid currentColor;
+  background: #fff;
+  color: #94a3b8;
+}
+
+.asset-history-item--deposit::after { color: #16a34a; }
+.asset-history-item--withdraw::after { color: #dc2626; }
+.asset-history-item--adjust::after { color: #2563eb; }
+
+.asset-history-item-amount {
+  font-size: 18px;
+}
+
+.asset-operation-form {
+  gap: 14px;
+}
+
+.asset-operation-form h3 {
+  font-size: 28px;
+  letter-spacing: -0.02em;
+}
+
+.asset-operation-grid label span,
+.asset-operation-form label {
+  color: #64748b;
+}
+
+.asset-operation-form input,
+.asset-operation-form select {
+  border-radius: 12px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+  min-height: 44px;
+}
+
+.asset-operation-form .button.primary {
+  min-height: 44px;
+  font-weight: 700;
+  border-radius: 12px;
+  box-shadow: 0 10px 22px rgba(37, 99, 235, 0.28);
+}
+
+.asset-modal-actions {
+  margin-top: 14px;
+  gap: 12px;
+}
+
+.asset-modal-actions .button {
+  min-height: 42px;
+  font-weight: 700;
+  border-radius: 12px;
+}
+
+@media (max-width: 900px) {
+  .asset-fullscreen-modal {
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    transform: translate(0, 10px);
+    border-radius: 0;
+    padding: 14px;
+  }
+
+  .asset-fullscreen-modal.is-open {
+    transform: translate(0, 0);
+  }
+}
