@@ -1510,6 +1510,7 @@ const renderCategories = () => {
   renderCategoryListOptions();
   renderCategoryManager();
   renderCapitalCategories();
+  renderCapitalAssetCategoryOptions();
   updateTransactionFormState();
 };
 
@@ -1965,6 +1966,83 @@ const capitalTypeLabel = (type) => ({
   real_estate: "Недвижимость",
   other: "Другое",
 }[type] || type);
+
+const capitalizeAssetTypeByCategoryName = (categoryName = "") => {
+  const normalized = String(categoryName || "").trim().toLowerCase();
+  if (!normalized) {
+    return "other";
+  }
+  if (normalized.includes("вклад") || normalized.includes("депозит")) {
+    return "deposit";
+  }
+  if (normalized.includes("налич")) {
+    return "cash";
+  }
+  if (normalized.includes("банк") || normalized.includes("счет") || normalized.includes("счёт")) {
+    return "bank";
+  }
+  if (normalized.includes("инвест") || normalized.includes("рынок") || normalized.includes("крипт")) {
+    return "investment";
+  }
+  if (normalized.includes("недвиж") || normalized.includes("участ")) {
+    return "real_estate";
+  }
+  return "other";
+};
+
+const getAssetTypeForCategory = (categoryName = "") => {
+  if (!categoryName) {
+    return "other";
+  }
+  const related = (capitalState?.assets || []).filter((asset) => (asset.category || "") === categoryName);
+  if (!related.length) {
+    return capitalizeAssetTypeByCategoryName(categoryName);
+  }
+  const stats = related.reduce((acc, asset) => {
+    const key = asset.type || "other";
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
+  return Object.entries(stats).sort((a, b) => b[1] - a[1])[0]?.[0] || capitalizeAssetTypeByCategoryName(categoryName);
+};
+
+const getSelectedCapitalAssetCategory = () => {
+  if (!capitalAssetType) {
+    return "";
+  }
+  const option = capitalAssetType.options[capitalAssetType.selectedIndex];
+  return option?.dataset?.category || option?.textContent?.trim() || capitalTypeLabel(capitalAssetType.value || "") || "";
+};
+
+const renderCapitalAssetCategoryOptions = (preferredCategory = "") => {
+  if (!capitalAssetType || !capitalState) {
+    return;
+  }
+  const categories = capitalizeAssetCategories();
+  const fallback = ["cash", "bank", "deposit", "investment", "real_estate", "other"].map((type) => ({
+    name: capitalTypeLabel(type),
+    type,
+  }));
+  const source = categories.length
+    ? categories.map((category) => ({ name: category.name, type: getAssetTypeForCategory(category.name) }))
+    : fallback;
+  const currentCategory = getSelectedCapitalAssetCategory();
+  const categoryToSelect = preferredCategory || currentCategory || source[0]?.name || "";
+
+  capitalAssetType.innerHTML = "";
+  source.forEach((item) => {
+    const option = document.createElement("option");
+    option.value = item.type;
+    option.dataset.category = item.name;
+    option.textContent = item.name;
+    capitalAssetType.appendChild(option);
+  });
+
+  const match = [...capitalAssetType.options].find((option) => option.dataset.category === categoryToSelect);
+  if (match) {
+    capitalAssetType.value = match.value;
+  }
+};
 
 const assetOperationLabel = (type) => ({
   deposit: "Пополнение",
@@ -2465,6 +2543,7 @@ const saveAndRenderCapitalCategories = () => {
   saveCapitalV2(capitalState);
   renderCapitalCategories();
   renderCapitalCategoryHints();
+  renderCapitalAssetCategoryOptions();
   renderCapitalSubcategoryOptions(capitalSubcategorySelect?.value || "");
   renderCapitalAssets();
   renderCapitalSummary();
@@ -2602,7 +2681,7 @@ const renderCapitalSubcategoryOptions = (preferred = "") => {
   if (!capitalSubcategorySelect) {
     return;
   }
-  const resolvedCategory = capitalTypeLabel(capitalAssetType?.value || "");
+  const resolvedCategory = getSelectedCapitalAssetCategory();
   const category = findCapitalCategory(resolvedCategory);
   const subcategories = [...(category?.subs || [])].sort((a, b) => a.localeCompare(b, "ru"));
 
@@ -3620,6 +3699,7 @@ const capitalResetAssetForm = () => {
   capitalAssetCurrency.value = capitalState.settings.baseCurrency;
   capitalAssetMaturityDate.value = "";
   capitalAssetExpectedProfit.value = "";
+  renderCapitalAssetCategoryOptions();
   renderCapitalSubcategoryOptions();
   capitalEditingAssetId = null;
   const submitButton = capitalAssetForm.querySelector('button[type="submit"]');
@@ -3641,7 +3721,7 @@ const capitalFillAssetForm = (asset) => {
   if (capitalAssetOwner) {
     capitalAssetOwner.value = asset.owner || "";
   }
-  capitalAssetType.value = asset.type || "cash";
+  renderCapitalAssetCategoryOptions(asset.category || capitalTypeLabel(asset.type || "cash"));
   capitalAssetCurrency.value = asset.currency || capitalState.settings.baseCurrency;
   capitalAssetAmount.value = asset.amount ?? 0;
   capitalAssetInvested.value = asset.invested ?? asset.amount ?? 0;
@@ -3679,7 +3759,7 @@ const capitalAddAsset = () => {
   const isDeposit = capitalAssetType.value === "deposit";
   const amountParsed = Number.parseFloat(amountInput);
   const amount = Number.isNaN(amountParsed) ? invested : amountParsed;
-  const resolvedCategory = capitalTypeLabel(capitalAssetType.value);
+  const resolvedCategory = getSelectedCapitalAssetCategory() || capitalTypeLabel(capitalAssetType.value);
   if (resolvedCategory) {
     capitalEnsureCategory(resolvedCategory, subcategoryValue);
   }
