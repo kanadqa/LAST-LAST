@@ -2842,3 +2842,221 @@ table tbody tr:hover {
     transform: translate(0, 0);
   }
 }
+
+/* Asset details workspace: full structural redesign */
+#assetDetailsOverlay {
+  background: rgba(2, 6, 23, 0.52);
+  backdrop-filter: blur(10px);
+}
+
+#assetDetailsModal.asset-fullscreen-modal {
+  inset: 50% auto auto 50%;
+  width: min(1500px, 96vw);
+  height: min(920px, 95vh);
+  transform: translate(-50%, -48%) scale(0.985);
+  border-radius: 26px;
+  border: 1px solid rgba(148, 163, 184, 0.34);
+  background:
+    radial-gradient(900px 240px at 0% 0%, rgba(59, 130, 246, 0.18), transparent 62%),
+    radial-gradient(800px 260px at 100% 10%, rgba(14, 165, 233, 0.14), transparent 60%),
+    linear-gradient(180deg, #f8fbff 0%, #ecf2ff 100%);
+  box-shadow: 0 40px 90px rgba(2, 6, 23, 0.36);
+  padding: 24px;
+}
+
+#assetDetailsModal.asset-fullscreen-modal.is-open {
+  transform: translate(-50%, -50%) scale(1);
+}
+
+.asset-workspace-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 18px;
+}
+
+.asset-workspace-kicker {
+  margin: 0;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  font-size: 11px;
+  color: #64748b;
+  font-weight: 700;
+}
+
+.asset-workspace-titlebox h2 {
+  margin: 4px 0 0;
+  font-size: clamp(30px, 3.2vw, 54px);
+  line-height: 1.04;
+  letter-spacing: -0.03em;
+}
+
+.asset-workspace-titlebox .hint {
+  margin-top: 10px;
+  color: #64748b;
+  font-size: 14px;
+}
+
+.asset-workspace-header .button {
+  border-radius: 999px;
+  min-height: 42px;
+  padding-inline: 18px;
+}
+
+.asset-workspace-body {
+  display: grid;
+  grid-template-columns: minmax(0, 1.35fr) minmax(360px, 0.65fr);
+  gap: 18px;
+  min-height: 0;
+  flex: 1;
+}
+
+.asset-workspace-main {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 14px;
+  min-height: 0;
+}
+
+.asset-kpi-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 12px;
+}
+
+.asset-kpi-card {
+  border-radius: 18px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  box-shadow: 0 10px 26px rgba(15, 23, 42, 0.08);
+  background: linear-gradient(145deg, #ffffff 0%, #eef2ff 100%);
+  padding: 16px;
+  display: grid;
+  gap: 8px;
+}
+
+.asset-kpi-card span {
+  text-transform: uppercase;
+  font-size: 12px;
+  letter-spacing: 0.06em;
+  color: #64748b;
+}
+
+.asset-kpi-card strong {
+  font-size: clamp(24px, 2.1vw, 36px);
+  letter-spacing: -0.02em;
+}
+
+.asset-history-shell,
+.asset-workspace-side {
+  border-radius: 20px;
+  border: 1px solid rgba(148, 163, 184, 0.3);
+  background: rgba(255, 255, 255, 0.88);
+  backdrop-filter: blur(4px);
+  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.08);
+}
+
+.asset-history-shell {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  min-height: 0;
+}
+
+.asset-section-head h3 {
+  margin: 0;
+  font-size: 26px;
+  letter-spacing: -0.02em;
+}
+
+.asset-section-head .hint {
+  margin: 4px 0 0;
+}
+
+.asset-history {
+  max-height: none;
+  min-height: 0;
+  overflow: auto;
+  padding-right: 6px;
+}
+
+.asset-history-item {
+  border-left-width: 3px;
+  border-radius: 14px;
+  padding: 14px 14px 14px 16px;
+}
+
+.asset-workspace-side {
+  position: sticky;
+  top: 10px;
+  align-self: start;
+  display: grid;
+  gap: 12px;
+}
+
+.asset-operation-form {
+  display: grid;
+  gap: 12px;
+}
+
+.asset-operation-grid {
+  display: grid;
+  gap: 10px;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.asset-operation-grid .full {
+  grid-column: 1 / -1;
+}
+
+.asset-operation-form input,
+.asset-operation-form select {
+  min-height: 44px;
+  border-radius: 12px;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+}
+
+.asset-operation-form .button.primary {
+  min-height: 44px;
+  border-radius: 12px;
+  font-weight: 700;
+}
+
+.asset-modal-actions {
+  margin-top: 2px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+
+.asset-modal-actions .button {
+  min-height: 42px;
+  border-radius: 12px;
+  justify-content: center;
+  font-weight: 700;
+}
+
+@media (max-width: 900px) {
+  #assetDetailsModal.asset-fullscreen-modal {
+    inset: 0;
+    width: 100vw;
+    height: 100vh;
+    transform: translate(0, 6px);
+    border-radius: 0;
+    padding: 14px;
+  }
+
+  #assetDetailsModal.asset-fullscreen-modal.is-open {
+    transform: translate(0, 0);
+  }
+
+  .asset-workspace-body,
+  .asset-kpi-grid,
+  .asset-operation-grid,
+  .asset-modal-actions {
+    grid-template-columns: 1fr;
+  }
+
+  .asset-workspace-side {
+    position: static;
+  }
+}
