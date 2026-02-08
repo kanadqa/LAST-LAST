@@ -2011,7 +2011,15 @@ const getSelectedCapitalAssetCategory = () => {
     return "";
   }
   const option = capitalAssetType.options[capitalAssetType.selectedIndex];
-  return option?.dataset?.category || option?.textContent?.trim() || capitalTypeLabel(capitalAssetType.value || "") || "";
+  return option?.dataset?.category || option?.value || option?.textContent?.trim() || "";
+};
+
+const getSelectedCapitalAssetType = () => {
+  if (!capitalAssetType) {
+    return "other";
+  }
+  const option = capitalAssetType.options[capitalAssetType.selectedIndex];
+  return option?.dataset?.type || "other";
 };
 
 const renderCapitalAssetCategoryOptions = (preferredCategory = "") => {
@@ -2032,15 +2040,19 @@ const renderCapitalAssetCategoryOptions = (preferredCategory = "") => {
   capitalAssetType.innerHTML = "";
   source.forEach((item) => {
     const option = document.createElement("option");
-    option.value = item.type;
+    option.value = item.name;
     option.dataset.category = item.name;
+    option.dataset.type = item.type;
     option.textContent = item.name;
     capitalAssetType.appendChild(option);
   });
 
-  const match = [...capitalAssetType.options].find((option) => option.dataset.category === categoryToSelect);
-  if (match) {
-    capitalAssetType.value = match.value;
+  const options = [...capitalAssetType.options];
+  const matchIndex = options.findIndex((option) => option.dataset.category === categoryToSelect);
+  if (matchIndex >= 0) {
+    capitalAssetType.selectedIndex = matchIndex;
+  } else if (options.length) {
+    capitalAssetType.selectedIndex = 0;
   }
 };
 
@@ -2960,15 +2972,15 @@ const renderCapitalAssets = () => {
 
   const grouped = new Map();
   sortedAssets.forEach((asset) => {
-    const typeLabel = capitalTypeLabel(asset.type) || "Без типа";
-    if (!grouped.has(typeLabel)) {
-      grouped.set(typeLabel, new Map());
+    const categoryLabel = asset.category || capitalTypeLabel(asset.type) || "Без категории";
+    if (!grouped.has(categoryLabel)) {
+      grouped.set(categoryLabel, new Map());
     }
     const subcategory = asset.subcategory || "Без подкатегории";
-    if (!grouped.get(typeLabel).has(subcategory)) {
-      grouped.get(typeLabel).set(subcategory, []);
+    if (!grouped.get(categoryLabel).has(subcategory)) {
+      grouped.get(categoryLabel).set(subcategory, []);
     }
-    grouped.get(typeLabel).get(subcategory).push(asset);
+    grouped.get(categoryLabel).get(subcategory).push(asset);
   });
 
   const renderGroupTotals = (assets) => {
@@ -3069,7 +3081,7 @@ const renderCapitalAssets = () => {
               <span class="asset-avatar">${avatarMarkup}</span>
               <span class="asset-main">
                 <span class="asset-title">${asset.name}</span>
-                <span class="asset-meta">${capitalTypeLabel(asset.type)} • ${asset.currency}${asset.owner ? ` • ${asset.owner}` : ""}</span>
+                <span class="asset-meta">${asset.category || capitalTypeLabel(asset.type)} • ${asset.currency}${asset.owner ? ` • ${asset.owner}` : ""}</span>
               </span>
             </div>
             <div class="asset-tile-metrics">
@@ -3756,16 +3768,17 @@ const capitalAddAsset = () => {
     return;
   }
   const subcategoryValue = capitalSubcategorySelect ? capitalSubcategorySelect.value.trim() : "";
-  const isDeposit = capitalAssetType.value === "deposit";
+  const selectedType = getSelectedCapitalAssetType();
+  const isDeposit = selectedType === "deposit";
   const amountParsed = Number.parseFloat(amountInput);
   const amount = Number.isNaN(amountParsed) ? invested : amountParsed;
-  const resolvedCategory = getSelectedCapitalAssetCategory() || capitalTypeLabel(capitalAssetType.value);
+  const resolvedCategory = getSelectedCapitalAssetCategory() || capitalTypeLabel(selectedType);
   if (resolvedCategory) {
     capitalEnsureCategory(resolvedCategory, subcategoryValue);
   }
   const payload = {
     name,
-    type: capitalAssetType.value,
+    type: selectedType,
     currency: capitalAssetCurrency.value.trim().toUpperCase() || capitalState.settings.baseCurrency,
     amount,
     invested,
@@ -3779,7 +3792,7 @@ const capitalAddAsset = () => {
       : null,
     maturityDate: isDeposit ? capitalAssetMaturityDate.value : "",
     note: capitalAssetNote.value.trim(),
-    icon: capitalDefaultIcon(capitalAssetType.value),
+    icon: capitalDefaultIcon(selectedType),
     avatarDataUrl: "",
     history: capitalEditingAssetId
       ? (capitalState.assets.find((item) => item.id === capitalEditingAssetId)?.history || [])
@@ -4893,7 +4906,7 @@ onAll(capitalTabs, "click", (event) => {
   }, "фильтр капитала");
 
   on(capitalAssetType, "change", () => {
-    const isDeposit = capitalAssetType.value === "deposit";
+    const isDeposit = getSelectedCapitalAssetType() === "deposit";
     capitalAssetExpectedProfit.disabled = !isDeposit;
     capitalAssetMaturityDate.disabled = !isDeposit;
     if (!isDeposit) {
