@@ -3395,3 +3395,37 @@ table tbody tr:hover {
     width: 100vw;
   }
 }
+
+.asset-history-headline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.asset-history-actions {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.asset-history-delete {
+  border-color: #fecaca;
+  color: #b91c1c;
+  background: #fff;
+}
+
+.asset-history-delete:hover {
+  background: #fef2f2;
+}
+
+@media (max-width: 720px) {
+  .asset-history-headline {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .asset-history-actions {
+    gap: 8px;
+  }
+}

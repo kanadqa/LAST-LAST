@@ -117,6 +117,7 @@ const assetDetailsCurrent = document.getElementById("assetDetailsCurrent");
 const assetDetailsInvested = document.getElementById("assetDetailsInvested");
 const assetDetailsProfit = document.getElementById("assetDetailsProfit");
 const assetDetailsHistory = document.getElementById("assetDetailsHistory");
+const assetHistoryClear = document.getElementById("assetHistoryClear");
 const assetOperationForm = document.getElementById("assetOperationForm");
 const assetOperationType = document.getElementById("assetOperationType");
 const assetOperationAmount = document.getElementById("assetOperationAmount");
@@ -3466,7 +3467,12 @@ const renderAssetHistory = (asset) => {
   if (!assetDetailsHistory) {
     return;
   }
-  const logs = [...(asset.history || [])].sort((a, b) => String(b.ts || "").localeCompare(String(a.ts || "")));
+  const logs = (asset.history || [])
+    .map((item, index) => ({ ...item, __index: index }))
+    .sort((a, b) => String(b.ts || "").localeCompare(String(a.ts || "")));
+  if (assetHistoryClear) {
+    assetHistoryClear.disabled = !logs.length;
+  }
   if (!logs.length) {
     assetDetailsHistory.innerHTML = "<div class='asset-history-empty'><p>Пока нет записей.</p><button id='assetHistoryFirstAction' type='button' class='button secondary'>Добавить первое действие</button></div>";
     return;
@@ -3483,7 +3489,10 @@ const renderAssetHistory = (asset) => {
     return `${dayHeader}<article class='asset-history-item asset-history-item--${item.type || "note"}'>
       <div class='asset-history-head'>
         <strong class='asset-history-item-title'>${assetOperationLabel(item.type)}</strong>
-        <span class='asset-history-item-amount'>${amountText}</span>
+        <div class='asset-history-actions'>
+          <span class='asset-history-item-amount'>${amountText}</span>
+          <button type='button' class='chip danger asset-history-delete' data-action='delete-asset-history' data-history-index='${item.__index}' aria-label='Удалить запись истории'>Удалить</button>
+        </div>
       </div>
       <span class='asset-history-item-meta'>${new Date(item.ts).toLocaleString("ru-RU")}</span>
       ${note}
@@ -5045,6 +5054,53 @@ onAll(capitalTabs, "click", (event) => {
     applyAssetDetailsMode("edit");
     assetOperationType?.focus();
   }, "asset history first action");
+
+  on(assetDetailsHistory, "click", (event) => {
+    const deleteButton = event.target.closest("[data-action='delete-asset-history']");
+    if (!deleteButton || !selectedAssetDetailsId) {
+      return;
+    }
+    const historyIndex = Number.parseInt(deleteButton.dataset.historyIndex || "", 10);
+    if (!Number.isInteger(historyIndex) || historyIndex < 0) {
+      return;
+    }
+    const asset = capitalState.assets.find((item) => item.id === selectedAssetDetailsId);
+    if (!asset || !Array.isArray(asset.history) || !asset.history[historyIndex]) {
+      return;
+    }
+    if (!confirm("Удалить эту запись из истории?")) {
+      return;
+    }
+    asset.history.splice(historyIndex, 1);
+    asset.updatedAt = capitalNowIso();
+    saveCapitalV2(capitalState);
+    renderAssetHistory(asset);
+    renderCapitalView();
+    showToast("Запись истории удалена");
+  }, "delete asset history item");
+
+  on(assetHistoryClear, "click", () => {
+    if (!selectedAssetDetailsId) {
+      return;
+    }
+    const asset = capitalState.assets.find((item) => item.id === selectedAssetDetailsId);
+    if (!asset) {
+      return;
+    }
+    if (!Array.isArray(asset.history) || !asset.history.length) {
+      showToast("История уже пустая");
+      return;
+    }
+    if (!confirm("Очистить всю историю этого актива?")) {
+      return;
+    }
+    asset.history = [];
+    asset.updatedAt = capitalNowIso();
+    saveCapitalV2(capitalState);
+    renderAssetHistory(asset);
+    renderCapitalView();
+    showToast("История актива очищена");
+  }, "clear asset history");
 
   on(assetOperationUndo, "click", () => {
     if (!lastAssetOperationUndo || !selectedAssetDetailsId) {
