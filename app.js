@@ -107,6 +107,7 @@ const capitalAssetLiquidity = document.getElementById("capitalAssetLiquidity");
 const capitalAssetExpectedProfit = document.getElementById("capitalAssetExpectedProfit");
 const capitalAssetNote = document.getElementById("capitalAssetNote");
 const capitalAssetClose = document.getElementById("capitalAssetClose");
+const capitalAssetArchive = document.getElementById("capitalAssetArchive");
 const capitalAssetDelete = document.getElementById("capitalAssetDelete");
 const capitalAssetDrawerTitle = document.getElementById("capitalAssetDrawerTitle");
 const assetDetailsOverlay = document.getElementById("assetDetailsOverlay");
@@ -180,6 +181,7 @@ const capitalAssetLiquidityFilter = document.getElementById("capitalAssetLiquidi
 const capitalAssetOwnerFilter = document.getElementById("capitalAssetOwnerFilter");
 const capitalAssetSort = document.getElementById("capitalAssetSort");
 const capitalAssetSortDir = document.getElementById("capitalAssetSortDir");
+const capitalAssetClosedToggle = document.getElementById("capitalAssetClosedToggle");
 const capitalAssetFiltersReset = document.getElementById("capitalAssetFiltersReset");
 const capitalAssetActiveFilters = document.getElementById("capitalAssetActiveFilters");
 const capitalAssetOwnerPresetButtons = document.querySelectorAll("[data-owner-preset]");
@@ -190,6 +192,7 @@ const capitalAssetsSummaryProfit = document.getElementById("capitalAssetsSummary
 const capitalAssetsSummaryPercent = document.getElementById("capitalAssetsSummaryPercent");
 const capitalAssetsSummaryWarning = document.getElementById("capitalAssetsSummaryWarning");
 const capitalAssetsNetAfterDebts = document.getElementById("capitalAssetsNetAfterDebts");
+const capitalAssetsCategoryReport = document.getElementById("capitalAssetsCategoryReport");
 const capitalAssetViewButtons = document.querySelectorAll("[data-capital-asset-view]");
 const capitalAssetPanels = document.querySelectorAll("[data-capital-asset-panel]");
 const addCapitalCategoryButton = document.getElementById("addCapitalCategory");
@@ -624,6 +627,7 @@ const assetFilters = {
   owner: "all",
   sort: "amount",
   direction: "desc",
+  includeClosed: false,
 };
 let assetUiState = { groups: {}, subgroups: {} };
 let capitalCategoryModalState = null;
@@ -695,6 +699,7 @@ const normalizeCapitalState = () => {
       unconvertible: asset.unconvertible ?? false,
       history: Array.isArray(asset.history) ? asset.history : [],
       buyRate: asset.buyRate == null || asset.buyRate === "" ? null : sanitizeNumber(asset.buyRate, null),
+      closedAt: asset.closedAt || null,
       ...asset,
       currency,
       amount,
@@ -1829,6 +1834,12 @@ const assetValueInBase = (asset, field) => {
   if (asset.currency === capitalState.settings.baseCurrency) {
     return value;
   }
+  if (field === "invested") {
+    const buyRate = sanitizeNumber(asset.buyRate, 0);
+    if (buyRate > 0) {
+      return sanitizeNumber(value, 0) * buyRate;
+    }
+  }
   const conversion = capitalGetAssetConversionMeta(asset);
   if (conversion.rate == null) {
     return null;
@@ -2143,6 +2154,8 @@ const assetOperationLabel = (type) => ({
   note: "Заметка",
   create: "Создание",
   update: "Изменение",
+  close: "Закрытие",
+  reopen: "Повторное открытие",
 }[type] || type);
 
 const capitalLiquidityLabel = (value) => ({
@@ -2959,9 +2972,16 @@ const renderCapitalAssets = () => {
   if (capitalAssetSearch) {
     capitalAssetSearch.value = assetFilters.search;
   }
+  if (capitalAssetClosedToggle) {
+    capitalAssetClosedToggle.classList.toggle("is-active", assetFilters.includeClosed);
+    capitalAssetClosedToggle.textContent = assetFilters.includeClosed ? "Скрыть закрытые" : "Показать закрытые";
+  }
   renderAssetActiveFilters();
 
   const filterAssets = items.filter((asset) => {
+    if (!assetFilters.includeClosed && asset.closedAt) {
+      return false;
+    }
     if (assetFilters.type !== "all" && asset.type !== assetFilters.type) {
       return false;
     }
@@ -2997,7 +3017,8 @@ const renderCapitalAssets = () => {
   });
 
   if (capitalAssetShown) {
-    capitalAssetShown.textContent = `Показано: ${sortedAssets.length}`;
+    const closedCount = items.filter((item) => item.closedAt).length;
+    capitalAssetShown.textContent = `Показано: ${sortedAssets.length}${closedCount ? ` • закрыто: ${closedCount}` : ""}`;
   }
 
   const totals = sortedAssets.reduce(
@@ -3051,6 +3072,9 @@ const renderCapitalAssets = () => {
         <button class="button secondary" data-action="add-asset">Добавить актив</button>
       </div>
     `;
+    if (capitalAssetsCategoryReport) {
+      capitalAssetsCategoryReport.innerHTML = "";
+    }
     return;
   }
 
@@ -3066,6 +3090,18 @@ const renderCapitalAssets = () => {
     }
     grouped.get(categoryLabel).get(subcategory).push(asset);
   });
+
+  if (capitalAssetsCategoryReport) {
+    const reportItems = [...grouped.entries()].map(([name, subMap]) => {
+      const assets = [...subMap.values()].flat();
+      const totals = assets.reduce((sum, item) => sum + (assetValueInBase(item, "amount") ?? 0), 0);
+      return { name, totals };
+    }).sort((a,b)=>b.totals-a.totals).slice(0,6);
+    const base = reportItems[0]?.totals || 0;
+    capitalAssetsCategoryReport.innerHTML = reportItems.length
+      ? `<div class="asset-report-card"><h4>Анализ категорий</h4>${reportItems.map((item)=>`<div class="asset-report-row"><span>${item.name}</span><strong>${capitalFormatMoney(item.totals)}</strong><small>${base>0?((item.totals/base)*100).toFixed(1):"0.0"}% от топа</small></div>`).join("")}</div>`
+      : "";
+  }
 
   const renderGroupTotals = (assets) => {
     return assets.reduce(
@@ -3205,6 +3241,7 @@ const renderCapitalAssets = () => {
               ${missingRateChip}
               ${rateSourceChip}
               ${showPercentWarning ? "<span class='chip chip-warning'>проверь данные</span>" : ""}
+              ${asset.closedAt ? "<span class='chip'>закрыт</span>" : ""}
               <span class="asset-toggle-label">Подробнее</span>
             </div>
           </div>
@@ -3621,6 +3658,7 @@ const renderAssetActiveFilters = () => {
   if (assetFilters.type !== "all") chips.push({ key: "type", label: `Тип: ${capitalTypeLabel(assetFilters.type)}` });
   if (assetFilters.liquidity !== "all") chips.push({ key: "liquidity", label: `Ликвидность: ${capitalLiquidityShort(assetFilters.liquidity)}` });
   if (assetFilters.owner !== "all") chips.push({ key: "owner", label: `Владелец: ${assetFilters.owner}` });
+  if (assetFilters.includeClosed) chips.push({ key: "closed", label: "Показаны закрытые" });
 
   if (!chips.length) {
     capitalAssetActiveFilters.innerHTML = "";
@@ -3833,6 +3871,10 @@ const capitalResetAssetForm = () => {
   if (capitalAssetDelete) {
     capitalAssetDelete.classList.remove("is-visible");
   }
+  if (capitalAssetArchive) {
+    capitalAssetArchive.classList.remove("is-visible");
+    capitalAssetArchive.textContent = "Закрыть актив";
+  }
   if (capitalAssetDrawerTitle) {
     capitalAssetDrawerTitle.textContent = "Новый актив";
   }
@@ -3865,6 +3907,10 @@ const capitalFillAssetForm = (asset) => {
   }
   if (capitalAssetDelete) {
     capitalAssetDelete.classList.add("is-visible");
+  }
+  if (capitalAssetArchive) {
+    capitalAssetArchive.classList.add("is-visible");
+    capitalAssetArchive.textContent = asset.closedAt ? "Открыть актив" : "Закрыть актив";
   }
   if (capitalAssetDrawerTitle) {
     capitalAssetDrawerTitle.textContent = "Редактирование";
@@ -3915,6 +3961,9 @@ const capitalAddAsset = () => {
     history: capitalEditingAssetId
       ? (capitalState.assets.find((item) => item.id === capitalEditingAssetId)?.history || [])
       : [{ type: "create", amount, note: "Актив создан", ts: capitalNowIso() }],
+    closedAt: capitalEditingAssetId
+      ? (capitalState.assets.find((item) => item.id === capitalEditingAssetId)?.closedAt || null)
+      : null,
   };
   if (capitalEditingAssetId) {
     const existing = capitalState.assets.find((item) => item.id === capitalEditingAssetId);
@@ -4864,6 +4913,26 @@ onAll(capitalTabs, "click", (event) => {
     }
   }, "escape close");
 
+  on(capitalAssetArchive, "click", () => {
+    if (!capitalEditingAssetId) {
+      return;
+    }
+    const asset = capitalState.assets.find((item) => item.id === capitalEditingAssetId);
+    if (!asset) {
+      return;
+    }
+    const closing = !asset.closedAt;
+    asset.closedAt = closing ? capitalNowIso() : null;
+    asset.updatedAt = capitalNowIso();
+    asset.history = [...(asset.history || []), { type: closing ? "close" : "reopen", amount: asset.amount, note: closing ? "Актив закрыт" : "Актив снова открыт", ts: capitalNowIso() }];
+    saveCapitalV2(capitalState);
+    capitalSetAssetModal(false);
+    capitalSetAssetDrawer(false);
+    capitalResetAssetForm();
+    showToast(closing ? "Актив закрыт" : "Актив снова открыт");
+    renderCapitalView();
+  }, "закрытие актива");
+
   on(capitalAssetDelete, "click", () => {
     if (!capitalEditingAssetId || !confirm("Удалить актив?")) {
       return;
@@ -5066,11 +5135,25 @@ onAll(capitalTabs, "click", (event) => {
     renderCapitalAssets();
   }, "фильтр владельца");
 
+  on(capitalAssetClosedToggle, "click", () => {
+    assetFilters.includeClosed = !assetFilters.includeClosed;
+    if (capitalAssetClosedToggle) {
+      capitalAssetClosedToggle.classList.toggle("is-active", assetFilters.includeClosed);
+      capitalAssetClosedToggle.textContent = assetFilters.includeClosed ? "Скрыть закрытые" : "Показать закрытые";
+    }
+    renderCapitalAssets();
+  }, "toggle closed assets");
+
   on(capitalAssetFiltersReset, "click", () => {
     assetFilters.search = "";
     assetFilters.type = "all";
     assetFilters.liquidity = "all";
     assetFilters.owner = "all";
+    assetFilters.includeClosed = false;
+    if (capitalAssetClosedToggle) {
+      capitalAssetClosedToggle.classList.remove("is-active");
+      capitalAssetClosedToggle.textContent = "Показать закрытые";
+    }
     renderCapitalAssets();
   }, "сброс фильтров активов");
 
@@ -5093,6 +5176,7 @@ onAll(capitalTabs, "click", (event) => {
     if (key === "type") assetFilters.type = "all";
     if (key === "liquidity") assetFilters.liquidity = "all";
     if (key === "owner") assetFilters.owner = "all";
+    if (key === "closed") assetFilters.includeClosed = false;
     renderCapitalAssets();
   }, "активные фильтры активов");
 

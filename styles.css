@@ -3459,3 +3459,70 @@ table tbody tr:hover {
 .asset-group-percent.is-warning {
   color: #b45309;
 }
+
+#capitalAssetArchive {
+  display: none;
+}
+
+#capitalAssetArchive.is-visible {
+  display: inline-flex;
+}
+
+.asset-summary {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 14px;
+}
+
+.asset-summary-card {
+  border-radius: 16px;
+  padding: 14px 16px;
+  border: 1px solid #dbe7f5;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
+}
+
+.asset-summary-card strong {
+  font-size: 34px;
+  letter-spacing: -0.02em;
+}
+
+.asset-category-report {
+  margin-top: 14px;
+}
+
+.asset-report-card {
+  border: 1px solid #dbe7f5;
+  background: #fff;
+  border-radius: 14px;
+  padding: 12px;
+  box-shadow: 0 6px 14px rgba(15, 23, 42, 0.04);
+}
+
+.asset-report-card h4 {
+  margin: 0 0 10px;
+}
+
+.asset-report-row {
+  display: grid;
+  grid-template-columns: 1fr auto auto;
+  gap: 10px;
+  padding: 8px 0;
+  border-top: 1px dashed #e2e8f0;
+}
+
+.asset-report-row:first-of-type { border-top: 0; }
+
+.asset-report-row small {
+  color: #64748b;
+}
+
+@media (max-width: 1100px) {
+  .asset-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 680px) {
+  .asset-summary {
+    grid-template-columns: 1fr;
+  }
+}

@@ -471,6 +471,7 @@
                     <button class="chip" type="button" data-owner-preset="Мама">Мама</button>
                     <button class="chip" type="button" data-owner-preset="Расиль">Расиль</button>
                     <button class="chip" type="button" data-owner-preset="Элиза">Элиза</button>
+                    <button class="chip" type="button" id="capitalAssetClosedToggle">Показать закрытые</button>
                     <button class="chip" type="button" id="capitalAssetFiltersReset">Сбросить фильтры</button>
                   </div>
                   <div id="capitalAssetActiveFilters" class="asset-active-filters"></div>
@@ -497,6 +498,7 @@
                   </div>
 
                   <div id="capitalAssetsList" class="asset-groups"></div>
+                  <div id="capitalAssetsCategoryReport" class="asset-category-report"></div>
                 </div>
               </div>
             </section>
@@ -507,6 +509,7 @@
             <div class="capital-asset-header">
               <h3 id="capitalAssetDrawerTitle">Новый актив</h3>
               <div class="capital-asset-actions">
+                <button id="capitalAssetArchive" type="button" class="button secondary">Закрыть актив</button>
                 <button id="capitalAssetDelete" type="button" class="button danger">Удалить</button>
                 <button id="capitalAssetClose" type="button" class="button secondary">Закрыть</button>
               </div>
@@ -565,6 +568,7 @@
 
               <section class="asset-form-section">
                 <h4>Суммы и доходность</h4>
+                <p class="hint">Если валюта актива не RUB, поля «Сумма» и «Вложено» вводятся в валюте актива (USD/EUR и т.д.).</p>
                 <div class="asset-form-grid">
                   <label>
                     Сумма (опционально)
