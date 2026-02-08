@@ -14,6 +14,12 @@ const categorySelect = document.getElementById("category");
 const subcategorySelect = document.getElementById("subcategory");
 const categoryTypeSelect = document.getElementById("categoryType");
 const categoryList = document.getElementById("categoryList");
+const transactionSearchInput = document.getElementById("transactionSearch");
+const transactionTypeFilter = document.getElementById("transactionTypeFilter");
+const transactionCategoryFilter = document.getElementById("transactionCategoryFilter");
+const selectAllTransactionsButton = document.getElementById("selectAllTransactions");
+const deleteSelectedTransactionsButton = document.getElementById("deleteSelectedTransactions");
+const lastBackupAt = document.getElementById("lastBackupAt");
 const addCategoryButton = document.getElementById("addCategory");
 const newCategoryInput = document.getElementById("newCategory");
 const newSubcategoryInput = document.getElementById("newSubcategory");
@@ -26,8 +32,11 @@ const toggleSubcategoryButton = document.getElementById("toggleSubcategoryChart"
 const toggleExpenseCategoryButton = document.getElementById("toggleExpenseCategoryChart");
 const expensePie = document.getElementById("expensePie");
 const expenseSubcategoryPie = document.getElementById("expenseSubcategoryPie");
+const toggleExpenseSubcategoryPieButton = document.getElementById("toggleExpenseSubcategoryPie");
+const expenseSubcategoryPiePanel = document.getElementById("expenseSubcategoryPiePanel");
 const incomePie = document.getElementById("incomePie");
 const reportLineChart = document.getElementById("reportLineChart");
+const reportChartTooltip = document.getElementById("reportChartTooltip");
 const categoryManager = document.getElementById("categoryManager");
 const rootDropzone = document.querySelector("[data-dropzone-root]");
 const filterTabs = document.querySelectorAll("[data-filter]");
@@ -38,6 +47,7 @@ const layoutButtons = document.querySelectorAll("[data-layout]");
 const reportStartInput = document.getElementById("reportStart");
 const reportEndInput = document.getElementById("reportEnd");
 const applyReportRangeButton = document.getElementById("applyReportRange");
+const reportMonthSelect = document.getElementById("reportMonthSelect");
 const reportRangeButtons = document.querySelectorAll("[data-report-range]");
 const reportGranularityButtons = document.querySelectorAll("[data-report-granularity]");
 const reportIncomeEl = document.getElementById("reportIncome");
@@ -85,15 +95,12 @@ const capitalAssetToggleButtons = document.querySelectorAll("[data-capital-asset
 const capitalAssetDrawer = document.getElementById("capitalAssetDrawer");
 const capitalAssetOverlay = document.getElementById("capitalAssetOverlay");
 const capitalAssetName = document.getElementById("capitalAssetName");
+const capitalAssetOwner = document.getElementById("capitalAssetOwner");
 const capitalAssetType = document.getElementById("capitalAssetType");
 const capitalAssetCurrency = document.getElementById("capitalAssetCurrency");
 const capitalAssetAmount = document.getElementById("capitalAssetAmount");
 const capitalAssetInvested = document.getElementById("capitalAssetInvested");
-const capitalAssetSubcategory = document.getElementById("capitalAssetSubcategory");
-const capitalAssetIcon = document.getElementById("capitalAssetIcon");
-const capitalAssetAvatar = document.getElementById("capitalAssetAvatar");
-const capitalAssetAvatarRemove = document.getElementById("capitalAssetAvatarRemove");
-const capitalSubcategoryList = document.getElementById("capitalSubcategoryList");
+const capitalSubcategorySelect = document.getElementById("capitalAssetSubcategory");
 const capitalAssetMaturityDate = document.getElementById("capitalAssetMaturityDate");
 const capitalAssetLiquidity = document.getElementById("capitalAssetLiquidity");
 const capitalAssetExpectedProfit = document.getElementById("capitalAssetExpectedProfit");
@@ -101,14 +108,80 @@ const capitalAssetNote = document.getElementById("capitalAssetNote");
 const capitalAssetClose = document.getElementById("capitalAssetClose");
 const capitalAssetDelete = document.getElementById("capitalAssetDelete");
 const capitalAssetDrawerTitle = document.getElementById("capitalAssetDrawerTitle");
+const assetDetailsOverlay = document.getElementById("assetDetailsOverlay");
+const assetDetailsModal = document.getElementById("assetDetailsModal");
+const assetDetailsClose = document.getElementById("assetDetailsClose");
+const assetDetailsTitle = document.getElementById("assetDetailsTitle");
+const assetDetailsMeta = document.getElementById("assetDetailsMeta");
+const assetDetailsCurrent = document.getElementById("assetDetailsCurrent");
+const assetDetailsInvested = document.getElementById("assetDetailsInvested");
+const assetDetailsProfit = document.getElementById("assetDetailsProfit");
+const assetDetailsHistory = document.getElementById("assetDetailsHistory");
+const assetHistoryClear = document.getElementById("assetHistoryClear");
+const assetOperationForm = document.getElementById("assetOperationForm");
+const assetOperationType = document.getElementById("assetOperationType");
+const assetOperationAmount = document.getElementById("assetOperationAmount");
+const assetOperationNote = document.getElementById("assetOperationNote");
+const assetDetailsEdit = document.getElementById("assetDetailsEdit");
+const assetDetailsDelete = document.getElementById("assetDetailsDelete");
+const assetDetailsPrev = document.getElementById("assetDetailsPrev");
+const assetDetailsNext = document.getElementById("assetDetailsNext");
+const assetDetailsMode = document.getElementById("assetDetailsMode");
+const assetOperationUndo = document.getElementById("assetOperationUndo");
+const assetTemplateButtons = document.querySelectorAll("[data-asset-template]");
 const toast = document.getElementById("toast");
+const transactionEditOverlay = document.getElementById("transactionEditOverlay");
+const transactionEditModal = document.getElementById("transactionEditModal");
+const transactionEditForm = document.getElementById("transactionEditForm");
+const transactionEditClose = document.getElementById("transactionEditClose");
+const capitalCategoryModalOverlay = document.getElementById("capitalCategoryModalOverlay");
+const capitalCategoryModal = document.getElementById("capitalCategoryModal");
+const capitalCategoryModalForm = document.getElementById("capitalCategoryModalForm");
+const capitalCategoryModalTitle = document.getElementById("capitalCategoryModalTitle");
+const capitalCategoryModalInput = document.getElementById("capitalCategoryModalInput");
+const capitalCategoryModalSubmit = document.getElementById("capitalCategoryModalSubmit");
+const capitalCategoryModalClose = document.getElementById("capitalCategoryModalClose");
+const editDateInput = document.getElementById("editDate");
+const editTypeInput = document.getElementById("editType");
+const editCategoryInput = document.getElementById("editCategory");
+const editSubcategoryInput = document.getElementById("editSubcategory");
+const editAmountInput = document.getElementById("editAmount");
+const editNoteInput = document.getElementById("editNote");
+
+const ensureFloatingTransactionEditModal = () => {
+  if (!transactionEditOverlay || !transactionEditModal) {
+    return;
+  }
+  if (transactionEditOverlay.parentElement !== document.body) {
+    document.body.appendChild(transactionEditOverlay);
+  }
+  if (transactionEditModal.parentElement !== document.body) {
+    document.body.appendChild(transactionEditModal);
+  }
+};
+
+const ensureFloatingAssetDetailsModal = () => {
+  if (!assetDetailsOverlay || !assetDetailsModal) {
+    return;
+  }
+  if (assetDetailsOverlay.parentElement !== document.body) {
+    document.body.appendChild(assetDetailsOverlay);
+  }
+  if (assetDetailsModal.parentElement !== document.body) {
+    document.body.appendChild(assetDetailsModal);
+  }
+};
 const selfTestPanel = document.getElementById("selfTestPanel");
 const capitalAssetsList = document.getElementById("capitalAssetsList");
 const capitalAssetSearch = document.getElementById("capitalAssetSearch");
 const capitalAssetTypeFilter = document.getElementById("capitalAssetTypeFilter");
 const capitalAssetLiquidityFilter = document.getElementById("capitalAssetLiquidityFilter");
+const capitalAssetOwnerFilter = document.getElementById("capitalAssetOwnerFilter");
 const capitalAssetSort = document.getElementById("capitalAssetSort");
 const capitalAssetSortDir = document.getElementById("capitalAssetSortDir");
+const capitalAssetFiltersReset = document.getElementById("capitalAssetFiltersReset");
+const capitalAssetActiveFilters = document.getElementById("capitalAssetActiveFilters");
+const capitalAssetOwnerPresetButtons = document.querySelectorAll("[data-owner-preset]");
 const capitalAssetShown = document.getElementById("capitalAssetShown");
 const capitalAssetsSummaryTotal = document.getElementById("capitalAssetsSummaryTotal");
 const capitalAssetsSummaryInvested = document.getElementById("capitalAssetsSummaryInvested");
@@ -117,10 +190,13 @@ const capitalAssetsSummaryPercent = document.getElementById("capitalAssetsSummar
 const capitalAssetsSummaryWarning = document.getElementById("capitalAssetsSummaryWarning");
 const capitalAssetViewButtons = document.querySelectorAll("[data-capital-asset-view]");
 const capitalAssetPanels = document.querySelectorAll("[data-capital-asset-panel]");
-const capitalCategoryForm = document.getElementById("capitalCategoryForm");
+const addCapitalCategoryButton = document.getElementById("addCapitalCategory");
 const capitalCategoryName = document.getElementById("capitalCategoryName");
+const capitalCategoryList = document.getElementById("capitalCategoryList");
 const capitalSubcategoryName = document.getElementById("capitalSubcategoryName");
+const capitalSubcategoryList = document.getElementById("capitalSubcategoryList");
 const capitalCategoryManager = document.getElementById("capitalCategoryManager");
+const capitalCategoryDropzone = document.getElementById("capitalCategoryDropzone");
 const capitalWeightedApr = document.getElementById("capitalWeightedApr");
 const capitalHighestApr = document.getElementById("capitalHighestApr");
 const capitalInterestMonthly = document.getElementById("capitalInterestMonthly");
@@ -152,6 +228,7 @@ const STORAGE_KEY = "budget.transactions.v2";
 const CATEGORY_KEY = "budget.categories.v3";
 const VIEW_KEY = "budget.view.active";
 const LAYOUT_KEY = "budget.layout";
+const BACKUP_META_KEY = "budget.backup.meta.v1";
 const CHART_LIMIT = 6;
 const CAPITAL_KEY_V2 = "budget.capital.v2";
 const CAPITAL_KEY_V1 = "budget.capital.v1";
@@ -215,7 +292,10 @@ const palette = [
 
 const formatType = (type) => (type === "income" ? "Доход" : "Расход");
 
-const DB_NAME = "budgetAppDb";
+const APP_SCOPE = (window.location.pathname || "/")
+  .replace(/[^a-zA-Z0-9]/g, "_")
+  .replace(/^_+|_+$/g, "") || "root";
+const DB_NAME = `budgetAppDb.${APP_SCOPE}`;
 const DB_VERSION = 1;
 const DB_STORE = "kv";
 
@@ -524,21 +604,29 @@ let showAllSubcategories = false;
 let showAllExpenseCategories = false;
 let categoryFilter = "all";
 let reportGranularity = "daily";
+let transactionFilters = { search: "", type: "all", category: "all" };
+let selectedTransactionIds = new Set();
+let showExpenseSubcategoryPieDetails = false;
+let editingTransactionId = null;
 let reportRange = { start: "", end: "" };
 let capitalState = null;
 let capitalOverviewFilter = "all";
 let capitalEditingAssetId = null;
+let selectedAssetDetailsId = null;
 let activeView = "dashboard";
 let currentLayout = "comfort";
 const assetFilters = {
   search: "",
   type: "all",
   liquidity: "all",
+  owner: "all",
   sort: "amount",
   direction: "desc",
 };
-let capitalAssetAvatarDataUrl = "";
 let assetUiState = { groups: {}, subgroups: {} };
+let capitalCategoryModalState = null;
+let assetDetailsViewMode = "view";
+let lastAssetOperationUndo = null;
 
 const persistAssetUiState = () => Storage.set(CAPITAL_ASSETS_UI_KEY, JSON.stringify(assetUiState));
 
@@ -595,12 +683,14 @@ const normalizeCapitalState = () => {
       section: asset.section || (isDeposit ? "Вклады" : "В наличии"),
       category: asset.category || categoryFallback,
       subcategory: asset.subcategory || "",
+      owner: (asset.owner || "").trim(),
       invested,
       liquidity,
       liquidityDays: asset.liquidityDays ?? null,
       expectedProfit: isDeposit ? (asset.expectedProfit ?? null) : null,
       maturityDate,
       unconvertible: asset.unconvertible ?? false,
+      history: Array.isArray(asset.history) ? asset.history : [],
       ...asset,
       currency,
       amount,
@@ -664,6 +754,27 @@ const touchTransaction = (item, updates = {}) => ({
   ...updates,
   updatedAt: new Date().toISOString(),
 });
+
+const getTransactionSortTimestamp = (item) => {
+  const candidate = item?.createdAt || item?.updatedAt || item?.date;
+  const ts = Date.parse(candidate || "");
+  return Number.isFinite(ts) ? ts : 0;
+};
+
+const sortTransactionsForHistory = (source) =>
+  source
+    .slice()
+    .sort((a, b) => {
+      const byDate = String(b.date || "").localeCompare(String(a.date || ""));
+      if (byDate !== 0) {
+        return byDate;
+      }
+      const byCreated = getTransactionSortTimestamp(b) - getTransactionSortTimestamp(a);
+      if (byCreated !== 0) {
+        return byCreated;
+      }
+      return String(b.id).localeCompare(String(a.id));
+    });
 
 const recordUndo = (kind, payload) => {
   if (!["addTx", "editTx", "deleteTx"].includes(kind)) {
@@ -735,13 +846,67 @@ const updateSummary = () => {
   expensePercentEl.textContent = `${percent.toFixed(1)}% от доходов`;
 };
 
+const renderBackupMeta = async () => {
+  if (!lastBackupAt) {
+    return;
+  }
+  const raw = await Storage.get(BACKUP_META_KEY);
+  if (!raw) {
+    lastBackupAt.textContent = "Последний backup: —";
+    return;
+  }
+  try {
+    const meta = JSON.parse(raw);
+    lastBackupAt.textContent = `Последний backup: ${new Date(meta.ts).toLocaleString("ru-RU")}`;
+  } catch {
+    lastBackupAt.textContent = "Последний backup: —";
+  }
+};
+
+const getFilteredTransactions = () => {
+  const search = transactionFilters.search.trim().toLowerCase();
+  return transactions.filter((item) => {
+    if (transactionFilters.type !== "all" && item.type !== transactionFilters.type) {
+      return false;
+    }
+    if (transactionFilters.category !== "all" && item.category !== transactionFilters.category) {
+      return false;
+    }
+    if (!search) {
+      return true;
+    }
+    const hay = `${item.note} ${item.category} ${item.subcategory} ${item.amount} ${item.date}`.toLowerCase();
+    return hay.includes(search);
+  });
+};
+
+const renderTransactionFilterOptions = () => {
+  if (!transactionCategoryFilter) {
+    return;
+  }
+  const previous = transactionFilters.category;
+  const categoriesSet = new Set(transactions.map((item) => item.category));
+  transactionCategoryFilter.innerHTML = '<option value="all">Все категории</option>';
+  [...categoriesSet].sort((a, b) => a.localeCompare(b, "ru")).forEach((name) => {
+    const option = document.createElement("option");
+    option.value = name;
+    option.textContent = name;
+    transactionCategoryFilter.appendChild(option);
+  });
+  transactionFilters.category = categoriesSet.has(previous) ? previous : "all";
+  transactionCategoryFilter.value = transactionFilters.category;
+};
+
 const renderTable = () => {
   tableBody.innerHTML = "";
+  const filtered = getFilteredTransactions();
+  const displayList = sortTransactionsForHistory(filtered);
+  renderTransactionFilterOptions();
 
   if (transactions.length === 0) {
     const row = document.createElement("tr");
     const cell = document.createElement("td");
-    cell.colSpan = 7;
+    cell.colSpan = 8;
     cell.textContent = "Пока нет операций. Добавьте первую запись.";
     cell.classList.add("hint");
     row.appendChild(cell);
@@ -749,23 +914,95 @@ const renderTable = () => {
     return;
   }
 
-  const displayList = transactions
-    .slice()
-    .sort((a, b) => new Date(b.date) - new Date(a.date));
+  if (displayList.length === 0) {
+    const row = document.createElement("tr");
+    const cell = document.createElement("td");
+    cell.colSpan = 8;
+    cell.textContent = "По выбранным фильтрам операций не найдено.";
+    cell.classList.add("hint");
+    row.appendChild(cell);
+    tableBody.appendChild(row);
+    return;
+  }
 
   displayList.forEach((item) => {
-      const row = document.createElement("tr");
-      row.innerHTML = `
-        <td>${item.date}</td>
-        <td><span class="tag ${item.type}">${formatType(item.type)}</span></td>
-        <td>${item.category}</td>
-        <td>${item.subcategory || "—"}</td>
-        <td>${currencyFormatter.format(item.amount)}</td>
-        <td>${item.note || "—"}</td>
-        <td><button class="button secondary" data-id="${item.id}">Удалить</button></td>
-      `;
-      tableBody.appendChild(row);
-    });
+    const row = document.createElement("tr");
+    const checked = selectedTransactionIds.has(item.id) ? "checked" : "";
+    row.innerHTML = `
+      <td><input type="checkbox" data-action="select-tx" data-id="${item.id}" ${checked} /></td>
+      <td>${item.date}</td>
+      <td><span class="tag ${item.type}">${formatType(item.type)}</span></td>
+      <td>${item.category}</td>
+      <td>${item.subcategory || "—"}</td>
+      <td>${currencyFormatter.format(item.amount)}</td>
+      <td>${item.note || "—"}</td>
+      <td>
+        <div class="table-actions">
+          <button class="button secondary" data-action="edit-tx" data-id="${item.id}">Изменить</button>
+          <button class="button secondary" data-action="delete-tx" data-id="${item.id}">Удалить</button>
+        </div>
+      </td>
+    `;
+    tableBody.appendChild(row);
+  });
+
+  if (deleteSelectedTransactionsButton) {
+    deleteSelectedTransactionsButton.disabled = selectedTransactionIds.size === 0;
+  }
+};
+
+const setTransactionEditModal = (isOpen) => {
+  if (!transactionEditModal || !transactionEditOverlay) {
+    return;
+  }
+  transactionEditModal.classList.toggle("is-open", isOpen);
+  transactionEditModal.setAttribute("aria-hidden", String(!isOpen));
+  transactionEditOverlay.classList.toggle("is-active", isOpen);
+};
+
+const openEditTransactionModal = (id) => {
+  const current = transactions.find((item) => item.id === id);
+  if (!current) {
+    return;
+  }
+  editingTransactionId = id;
+  editDateInput.value = current.date;
+  editTypeInput.value = current.type;
+  editCategoryInput.value = current.category;
+  editSubcategoryInput.value = current.subcategory || "";
+  editAmountInput.value = String(current.amount);
+  editNoteInput.value = current.note || "";
+  setTransactionEditModal(true);
+};
+
+const saveEditedTransaction = () => {
+  if (!editingTransactionId) {
+    return;
+  }
+  const index = transactions.findIndex((item) => item.id === editingTransactionId);
+  if (index === -1) {
+    return;
+  }
+  const amount = Number.parseFloat(editAmountInput.value);
+  if (!editDateInput.value || !editCategoryInput.value.trim() || !Number.isFinite(amount) || amount <= 0) {
+    showError("Заполните дату, категорию и сумму больше нуля.");
+    return;
+  }
+  const current = transactions[index];
+  const before = { ...current };
+  transactions[index] = touchTransaction(current, {
+    date: editDateInput.value,
+    type: editTypeInput.value,
+    category: editCategoryInput.value.trim(),
+    subcategory: editSubcategoryInput.value.trim(),
+    amount,
+    note: editNoteInput.value.trim(),
+  });
+  recordUndo("editTx", { before });
+  Storage.set(STORAGE_KEY, JSON.stringify(transactions));
+  setTransactionEditModal(false);
+  editingTransactionId = null;
+  render();
 };
 
 const buildTotals = (filterType, source = transactions) => {
@@ -794,6 +1031,9 @@ const buildSubTotals = (type, source = transactions) => {
 };
 
 const renderChart = (container, totals, emptyText, options = {}) => {
+  if (!container) {
+    return;
+  }
   container.innerHTML = "";
   const entries = Object.entries(totals).sort((a, b) => b[1] - a[1]);
   const formatter = options.formatter || currencyFormatter;
@@ -860,6 +1100,9 @@ const buildPie = (totals) => {
 };
 
 const renderPie = (container, totals, emptyText) => {
+  if (!container) {
+    return;
+  }
   container.innerHTML = "";
   const { entries, total } = buildPie(totals);
 
@@ -879,30 +1122,82 @@ const renderPie = (container, totals, emptyText) => {
 
   const ring = document.createElement("div");
   ring.className = "pie-ring";
+  const svg = document.createElementNS("http://www.w3.org/2000/svg", "svg");
+  svg.setAttribute("viewBox", "0 0 220 220");
+  svg.classList.add("pie-ring-svg");
 
-  let cumulative = 0;
-  const segments = entries
-    .map(([, value], index) => {
-      const start = cumulative;
-      const portion = (value / total) * 100;
-      cumulative += portion;
-      return `${palette[index % palette.length]} ${start}% ${cumulative}%`;
-    })
-    .join(", ");
-
-  ring.style.background = `conic-gradient(${segments})`;
+  const tooltip = document.createElement("div");
+  tooltip.className = "pie-tooltip is-hidden";
 
   const totalLabel = document.createElement("div");
   totalLabel.className = "pie-total";
-  totalLabel.innerHTML = `<span>Итого</span><strong>${currencyFormatter.format(total)}</strong>`;
+  const resetCenter = () => {
+    totalLabel.innerHTML = `<span>Итого</span><strong>${currencyFormatter.format(total)}</strong>`;
+  };
+  resetCenter();
 
+  const centerX = 110;
+  const centerY = 110;
+  const radius = 92;
+  const strokeWidth = 30;
+  let currentAngle = -90;
+
+  const polarToCartesian = (cx, cy, r, angle) => {
+    const rad = (angle * Math.PI) / 180;
+    return { x: cx + r * Math.cos(rad), y: cy + r * Math.sin(rad) };
+  };
+
+  entries.forEach(([label, value], index) => {
+    const portion = (value / total) * 360;
+    const endAngle = currentAngle + portion;
+    const start = polarToCartesian(centerX, centerY, radius, currentAngle);
+    const end = polarToCartesian(centerX, centerY, radius, endAngle);
+    const largeArc = portion > 180 ? 1 : 0;
+    const path = document.createElementNS("http://www.w3.org/2000/svg", "path");
+    const d = `M ${start.x} ${start.y} A ${radius} ${radius} 0 ${largeArc} 1 ${end.x} ${end.y}`;
+    path.setAttribute("d", d);
+    path.setAttribute("fill", "none");
+    path.setAttribute("stroke", palette[index % palette.length]);
+    path.setAttribute("stroke-width", String(strokeWidth));
+    path.setAttribute("stroke-linecap", "butt");
+    path.classList.add("pie-segment");
+
+    const percent = (value / total) * 100;
+    const detail = `${label}: ${currencyFormatter.format(value)} (${percent.toFixed(1)}%)`;
+
+    const showSegment = (event) => {
+      path.classList.add("is-active");
+      totalLabel.innerHTML = `<span>${label}</span><strong>${currencyFormatter.format(value)}</strong>`;
+      tooltip.textContent = detail;
+      tooltip.classList.remove("is-hidden");
+      const rect = visual.getBoundingClientRect();
+      tooltip.style.left = `${event.clientX - rect.left + 10}px`;
+      tooltip.style.top = `${event.clientY - rect.top - 8}px`;
+    };
+    const hideSegment = () => {
+      path.classList.remove("is-active");
+      tooltip.classList.add("is-hidden");
+      resetCenter();
+    };
+
+    path.addEventListener("mouseenter", showSegment);
+    path.addEventListener("mousemove", showSegment);
+    path.addEventListener("mouseleave", hideSegment);
+
+    svg.appendChild(path);
+    currentAngle = endAngle;
+  });
+
+  ring.appendChild(svg);
   visual.appendChild(ring);
   visual.appendChild(totalLabel);
+  visual.appendChild(tooltip);
 
   const legend = document.createElement("div");
   legend.className = "pie-legend";
 
   entries.forEach(([label, value], index) => {
+    const percent = (value / total) * 100;
     const item = document.createElement("div");
     item.className = "pie-legend-item";
 
@@ -911,7 +1206,7 @@ const renderPie = (container, totals, emptyText) => {
     swatch.style.background = palette[index % palette.length];
 
     const text = document.createElement("div");
-    text.innerHTML = `<strong>${label}</strong><span>${currencyFormatter.format(value)}</span>`;
+    text.innerHTML = `<strong>${label}</strong><span>${currencyFormatter.format(value)} · ${percent.toFixed(1)}%</span>`;
 
     item.appendChild(swatch);
     item.appendChild(text);
@@ -923,8 +1218,28 @@ const renderPie = (container, totals, emptyText) => {
   container.appendChild(chart);
 };
 
+const showReportTooltip = (event, text) => {
+  if (!reportChartTooltip) {
+    return;
+  }
+  reportChartTooltip.textContent = text;
+  reportChartTooltip.classList.remove("is-hidden");
+  const bounds = reportLineChart.getBoundingClientRect();
+  const offsetX = event.clientX - bounds.left + 12;
+  const offsetY = event.clientY - bounds.top - 12;
+  reportChartTooltip.style.left = `${offsetX}px`;
+  reportChartTooltip.style.top = `${offsetY}px`;
+};
+
+const hideReportTooltip = () => {
+  if (reportChartTooltip) {
+    reportChartTooltip.classList.add("is-hidden");
+  }
+};
+
 const renderLineChart = (target, data) => {
   target.innerHTML = "";
+  hideReportTooltip();
 
   if (data.length === 0) {
     target.innerHTML = "<text x='50%' y='50%' text-anchor='middle' fill='#94a3b8'>Нет данных</text>";
@@ -965,6 +1280,7 @@ const renderLineChart = (target, data) => {
     line.setAttribute("stroke", color);
     line.setAttribute("stroke-width", "3.5");
     line.setAttribute("stroke-linecap", "round");
+    line.classList.add("report-line");
     return line;
   };
 
@@ -988,16 +1304,22 @@ const renderLineChart = (target, data) => {
     return path;
   };
 
-  const drawPoints = (values, color) => {
+  const drawPoints = (values, color, typeLabel) => {
     const group = document.createElementNS("http://www.w3.org/2000/svg", "g");
     values.forEach((value, index) => {
       const circle = document.createElementNS("http://www.w3.org/2000/svg", "circle");
       circle.setAttribute("cx", scaleX(index));
       circle.setAttribute("cy", scaleY(value));
-      circle.setAttribute("r", "4");
+      circle.setAttribute("r", "4.5");
       circle.setAttribute("fill", "#fff");
       circle.setAttribute("stroke", color);
-      circle.setAttribute("stroke-width", "2");
+      circle.setAttribute("stroke-width", "2.5");
+      circle.classList.add("report-point");
+      const tooltipText = `${data[index].label} • ${typeLabel}: ${currencyFormatter.format(value)}`;
+      circle.addEventListener("mouseenter", (event) => showReportTooltip(event, tooltipText));
+      circle.addEventListener("mousemove", (event) => showReportTooltip(event, tooltipText));
+      circle.addEventListener("mouseleave", hideReportTooltip);
+      circle.addEventListener("blur", hideReportTooltip);
       group.appendChild(circle);
     });
     return group;
@@ -1049,8 +1371,8 @@ const renderLineChart = (target, data) => {
   const expenseArea = drawArea(data.map((item) => item.expense), "#ea580c");
   const incomeLine = drawLine(data.map((item) => item.income), "#16a34a");
   const expenseLine = drawLine(data.map((item) => item.expense), "#ea580c");
-  const incomePoints = drawPoints(data.map((item) => item.income), "#16a34a");
-  const expensePoints = drawPoints(data.map((item) => item.expense), "#ea580c");
+  const incomePoints = drawPoints(data.map((item) => item.income), "#16a34a", "Доходы");
+  const expensePoints = drawPoints(data.map((item) => item.expense), "#ea580c", "Расходы");
 
   target.appendChild(background);
   target.appendChild(grid);
@@ -1132,16 +1454,19 @@ const renderCharts = () => {
     expenseCategoryTotals,
     "Добавьте расходы, чтобы увидеть диаграмму."
   );
-  renderPie(
-    expenseSubcategoryPie,
-    expenseSubcategoryTotals,
-    "Добавьте расходы с подкатегориями, чтобы увидеть диаграмму."
-  );
-  renderPie(
-    incomePie,
-    incomeSubcategoryTotals,
-    "Добавьте доходы с подкатегориями, чтобы увидеть диаграмму."
-  );
+  if (expenseSubcategoryPiePanel) {
+    expenseSubcategoryPiePanel.classList.toggle("is-hidden", !showExpenseSubcategoryPieDetails);
+  }
+  if (toggleExpenseSubcategoryPieButton) {
+    toggleExpenseSubcategoryPieButton.textContent = showExpenseSubcategoryPieDetails ? "Скрыть детали" : "Подробнее";
+  }
+  if (showExpenseSubcategoryPieDetails) {
+    renderPie(
+      expenseSubcategoryPie,
+      expenseSubcategoryTotals,
+      "Добавьте расходы с подкатегориями, чтобы увидеть диаграмму."
+    );
+  }
 
   syncToggleButton(toggleExpenseCategoryButton, showAllExpenseCategories, canExpandExpenseCategories);
   syncToggleButton(toggleSubcategoryButton, showAllSubcategories, canExpandExpenseSubcategories);
@@ -1184,6 +1509,8 @@ const renderCategories = () => {
   renderCategoryOptions();
   renderCategoryListOptions();
   renderCategoryManager();
+  renderCapitalCategories();
+  renderCapitalAssetCategoryOptions();
   updateTransactionFormState();
 };
 
@@ -1245,7 +1572,26 @@ const filterTransactionsByRange = (items) => {
   });
 };
 
+const renderReportMonthOptions = () => {
+  if (!reportMonthSelect) {
+    return;
+  }
+  const previous = reportMonthSelect.value;
+  const months = [...new Set(transactions.map((item) => item.date.slice(0, 7)))].sort().reverse();
+  reportMonthSelect.innerHTML = '<option value="">Выбрать месяц</option>';
+  months.forEach((month) => {
+    const option = document.createElement("option");
+    option.value = month;
+    const [y, m] = month.split("-");
+    const date = new Date(Number(y), Number(m) - 1, 1);
+    option.textContent = date.toLocaleDateString("ru-RU", { month: "long", year: "numeric" });
+    reportMonthSelect.appendChild(option);
+  });
+  reportMonthSelect.value = months.includes(previous) ? previous : "";
+};
+
 const renderReports = () => {
+  renderReportMonthOptions();
   const filtered = filterTransactionsByRange(transactions);
   const totals = filtered.reduce(
     (acc, item) => {
@@ -1458,6 +1804,22 @@ const capitalToBase = (value, currency) => {
   return value * rate;
 };
 
+const assetValueInBase = (asset, field) => {
+  const value = field === "invested" ? (asset.invested ?? asset.amount ?? 0) : asset.amount;
+  const converted = capitalToBase(value, asset.currency);
+  if (converted == null && capitalIsUnconvertible(asset)) {
+    return null;
+  }
+  return converted ?? value;
+};
+
+const getProfitMeta = (amount, invested) => {
+  const profit = amount - invested;
+  const percent = invested > 0 ? (profit / invested) * 100 : null;
+  const isValid = Number.isFinite(percent) && Math.abs(percent) <= 999;
+  return { profit, percent: isValid ? percent : null, needsCheck: !isValid };
+};
+
 const capitalFxEndpoint = "https://api.exchangerate.host";
 
 const capitalFetchRate = async (base, currency) => {
@@ -1603,6 +1965,104 @@ const capitalTypeLabel = (type) => ({
   investment: "Инвестиции",
   real_estate: "Недвижимость",
   other: "Другое",
+}[type] || type);
+
+const capitalizeAssetTypeByCategoryName = (categoryName = "") => {
+  const normalized = String(categoryName || "").trim().toLowerCase();
+  if (!normalized) {
+    return "other";
+  }
+  if (normalized.includes("вклад") || normalized.includes("депозит")) {
+    return "deposit";
+  }
+  if (normalized.includes("налич")) {
+    return "cash";
+  }
+  if (normalized.includes("банк") || normalized.includes("счет") || normalized.includes("счёт")) {
+    return "bank";
+  }
+  if (normalized.includes("инвест") || normalized.includes("рынок") || normalized.includes("крипт")) {
+    return "investment";
+  }
+  if (normalized.includes("недвиж") || normalized.includes("участ")) {
+    return "real_estate";
+  }
+  return "other";
+};
+
+const getAssetTypeForCategory = (categoryName = "") => {
+  if (!categoryName) {
+    return "other";
+  }
+  const related = (capitalState?.assets || []).filter((asset) => (asset.category || "") === categoryName);
+  if (!related.length) {
+    return capitalizeAssetTypeByCategoryName(categoryName);
+  }
+  const stats = related.reduce((acc, asset) => {
+    const key = asset.type || "other";
+    acc[key] = (acc[key] || 0) + 1;
+    return acc;
+  }, {});
+  return Object.entries(stats).sort((a, b) => b[1] - a[1])[0]?.[0] || capitalizeAssetTypeByCategoryName(categoryName);
+};
+
+const getSelectedCapitalAssetCategory = () => {
+  if (!capitalAssetType) {
+    return "";
+  }
+  const option = capitalAssetType.options[capitalAssetType.selectedIndex];
+  return option?.dataset?.category || option?.value || option?.textContent?.trim() || "";
+};
+
+const getSelectedCapitalAssetType = () => {
+  if (!capitalAssetType) {
+    return "other";
+  }
+  const option = capitalAssetType.options[capitalAssetType.selectedIndex];
+  return option?.dataset?.type || "other";
+};
+
+const renderCapitalAssetCategoryOptions = (preferredCategory = "") => {
+  if (!capitalAssetType || !capitalState) {
+    return;
+  }
+  const categories = capitalizeAssetCategories();
+  const fallback = ["cash", "bank", "deposit", "investment", "real_estate", "other"].map((type) => ({
+    name: capitalTypeLabel(type),
+    type,
+  }));
+  const source = categories.length
+    ? categories.map((category) => ({ name: category.name, type: getAssetTypeForCategory(category.name) }))
+    : fallback;
+  const currentCategory = getSelectedCapitalAssetCategory();
+  const categoryToSelect = preferredCategory || currentCategory || source[0]?.name || "";
+
+  capitalAssetType.innerHTML = "";
+  source.forEach((item) => {
+    const option = document.createElement("option");
+    option.value = item.name;
+    option.dataset.category = item.name;
+    option.dataset.type = item.type;
+    option.textContent = item.name;
+    capitalAssetType.appendChild(option);
+  });
+
+  const options = [...capitalAssetType.options];
+  const matchIndex = options.findIndex((option) => option.dataset.category === categoryToSelect);
+  if (matchIndex >= 0) {
+    capitalAssetType.selectedIndex = matchIndex;
+  } else if (options.length) {
+    capitalAssetType.selectedIndex = 0;
+  }
+};
+
+const assetOperationLabel = (type) => ({
+  deposit: "Пополнение",
+  withdraw: "Списание",
+  adjust: "Корректировка",
+  note: "Заметка",
+  create: "Создание",
+  update: "Изменение",
 }[type] || type);
 
 const capitalLiquidityLabel = (value) => ({
@@ -2064,47 +2524,310 @@ const capitalEnsureCategory = (name, subcategory = "") => {
   }
 };
 
+const findCapitalCategory = (name) =>
+  capitalState.assetCategories.find((category) => category.name === name);
+
+const renderCapitalCategoryHints = () => {
+  if (capitalCategoryList) {
+    capitalCategoryList.innerHTML = "";
+    capitalizeAssetCategories().forEach((category) => {
+      const option = document.createElement("option");
+      option.value = category.name;
+      capitalCategoryList.appendChild(option);
+    });
+  }
+  if (capitalSubcategoryList) {
+    const activeCategory = capitalCategoryName?.value?.trim();
+    const subs = activeCategory
+      ? [...(findCapitalCategory(activeCategory)?.subs || [])].sort((a, b) => a.localeCompare(b, "ru"))
+      : capitalizeAssetCategories().flatMap((category) => category.subs || []);
+    const uniqueSubs = [...new Set(subs)];
+    capitalSubcategoryList.innerHTML = "";
+    uniqueSubs.forEach((sub) => {
+      const option = document.createElement("option");
+      option.value = sub;
+      capitalSubcategoryList.appendChild(option);
+    });
+  }
+};
+
+const saveAndRenderCapitalCategories = () => {
+  saveCapitalV2(capitalState);
+  renderCapitalCategories();
+  renderCapitalCategoryHints();
+  renderCapitalAssetCategoryOptions();
+  renderCapitalSubcategoryOptions(capitalSubcategorySelect?.value || "");
+  renderCapitalAssets();
+  renderCapitalSummary();
+  renderCapitalLedger();
+  renderCapitalStructureCharts();
+  renderCapitalOverview();
+  if (selectedAssetDetailsId) {
+    openAssetDetailsModal(selectedAssetDetailsId);
+  }
+};
+
+const renameCapitalCategory = (oldName, newName) => {
+  if (!newName || oldName === newName || findCapitalCategory(newName)) {
+    return;
+  }
+  const category = findCapitalCategory(oldName);
+  if (!category) {
+    return;
+  }
+  category.name = newName;
+  capitalState.assets = capitalState.assets.map((asset) =>
+    asset.category === oldName ? { ...asset, category: newName, updatedAt: capitalNowIso() } : asset
+  );
+  saveAndRenderCapitalCategories();
+};
+
+const renameCapitalSubcategory = (categoryName, oldName, newName) => {
+  if (!newName || oldName === newName) {
+    return;
+  }
+  const category = findCapitalCategory(categoryName);
+  if (!category) {
+    return;
+  }
+  category.subs = category.subs.map((item) => (item === oldName ? newName : item));
+  capitalState.assets = capitalState.assets.map((asset) =>
+    asset.category === categoryName && asset.subcategory === oldName
+      ? { ...asset, subcategory: newName, updatedAt: capitalNowIso() }
+      : asset
+  );
+  saveAndRenderCapitalCategories();
+};
+
+const deleteCapitalSubcategory = (categoryName, subName) => {
+  const category = findCapitalCategory(categoryName);
+  if (!category) {
+    return;
+  }
+  category.subs = category.subs.filter((item) => item !== subName);
+  capitalState.assets = capitalState.assets.map((asset) =>
+    asset.category === categoryName && asset.subcategory === subName
+      ? { ...asset, subcategory: "", updatedAt: capitalNowIso() }
+      : asset
+  );
+  saveAndRenderCapitalCategories();
+};
+
+const deleteCapitalCategory = (categoryName) => {
+  const remaining = capitalizeAssetCategories().filter((item) => item.name !== categoryName);
+  if (!remaining.length) {
+    alert("Нужна хотя бы одна категория.");
+    return;
+  }
+  const fallback = remaining[0].name;
+  capitalState.assetCategories = capitalState.assetCategories.filter((category) => category.name !== categoryName);
+  capitalState.assets = capitalState.assets.map((asset) =>
+    asset.category === categoryName
+      ? { ...asset, category: fallback, subcategory: "", updatedAt: capitalNowIso() }
+      : asset
+  );
+  saveAndRenderCapitalCategories();
+};
+
+const moveCapitalSubcategory = (fromCategory, subName, toCategory) => {
+  if (fromCategory === toCategory) {
+    return;
+  }
+  const from = findCapitalCategory(fromCategory);
+  const to = findCapitalCategory(toCategory);
+  if (!from || !to) {
+    return;
+  }
+  from.subs = from.subs.filter((item) => item !== subName);
+  if (!to.subs.includes(subName)) {
+    to.subs.push(subName);
+  }
+  capitalState.assets = capitalState.assets.map((asset) =>
+    asset.category === fromCategory && asset.subcategory === subName
+      ? { ...asset, category: toCategory, updatedAt: capitalNowIso() }
+      : asset
+  );
+  saveAndRenderCapitalCategories();
+};
+
+const moveCapitalCategoryToCategory = (fromCategory, toCategory) => {
+  if (fromCategory === toCategory) {
+    return;
+  }
+  const from = findCapitalCategory(fromCategory);
+  const to = findCapitalCategory(toCategory);
+  if (!from || !to) {
+    return;
+  }
+  to.subs = [...new Set([...(to.subs || []), fromCategory, ...(from.subs || [])])];
+  capitalState.assetCategories = capitalState.assetCategories.filter((category) => category.name !== fromCategory);
+  capitalState.assets = capitalState.assets.map((asset) => {
+    if (asset.category !== fromCategory) {
+      return asset;
+    }
+    const nextSubcategory = asset.subcategory || fromCategory;
+    return { ...asset, category: toCategory, subcategory: nextSubcategory, updatedAt: capitalNowIso() };
+  });
+  saveAndRenderCapitalCategories();
+};
+
+const promoteCapitalSubcategoryToCategory = (fromCategory, subName) => {
+  if (findCapitalCategory(subName)) {
+    return;
+  }
+  const from = findCapitalCategory(fromCategory);
+  if (!from) {
+    return;
+  }
+  from.subs = from.subs.filter((item) => item !== subName);
+  capitalState.assetCategories.push({ name: subName, subs: [] });
+  capitalState.assets = capitalState.assets.map((asset) =>
+    asset.category === fromCategory && asset.subcategory === subName
+      ? { ...asset, category: subName, subcategory: "", updatedAt: capitalNowIso() }
+      : asset
+  );
+  saveAndRenderCapitalCategories();
+};
+
+const renderCapitalSubcategoryOptions = (preferred = "") => {
+  if (!capitalSubcategorySelect) {
+    return;
+  }
+  const resolvedCategory = getSelectedCapitalAssetCategory();
+  const category = findCapitalCategory(resolvedCategory);
+  const subcategories = [...(category?.subs || [])].sort((a, b) => a.localeCompare(b, "ru"));
+
+  capitalSubcategorySelect.innerHTML = '<option value="">Без подкатегории</option>';
+  subcategories.forEach((sub) => {
+    const option = document.createElement("option");
+    option.value = sub;
+    option.textContent = sub;
+    capitalSubcategorySelect.appendChild(option);
+  });
+
+  capitalSubcategorySelect.value = subcategories.includes(preferred) ? preferred : "";
+};
+
 const renderCapitalCategories = () => {
-  if (!capitalCategoryManager) {
+  if (!capitalCategoryManager || !capitalState) {
     return;
   }
   capitalCategoryManager.innerHTML = "";
-  capitalSubcategoryList.innerHTML = "";
 
   const sorted = capitalizeAssetCategories();
   sorted.forEach((category) => {
-    category.subs.forEach((sub) => {
-      const subOption = document.createElement("option");
-      subOption.value = sub;
-      capitalSubcategoryList.appendChild(subOption);
+    const subs = category.subs || [];
+    const card = document.createElement("div");
+    card.className = "category-card capital-category-card";
+    card.dataset.capitalCategory = category.name;
+    card.draggable = true;
+
+    const header = document.createElement("div");
+    header.className = "category-card-header";
+
+    const title = document.createElement("div");
+    title.innerHTML = `<strong>${category.name}</strong><span>${subs.length} подкатегорий</span>`;
+
+    const badge = document.createElement("span");
+    badge.className = "type-badge expense";
+    badge.textContent = "Капитал";
+
+    const actions = document.createElement("div");
+    actions.className = "category-actions";
+    actions.innerHTML = `
+      <button class="chip" data-action="rename-capital-category" data-category="${category.name}">Переименовать</button>
+      <button class="chip danger" data-action="delete-capital-category" data-category="${category.name}">Удалить</button>
+    `;
+
+    const list = document.createElement("div");
+    list.className = "subcategory-list";
+    list.dataset.capitalDropzone = category.name;
+
+    if (!subs.length) {
+      const empty = document.createElement("p");
+      empty.className = "hint";
+      empty.textContent = "Нет подкатегорий";
+      list.appendChild(empty);
+    }
+
+    subs.forEach((sub) => {
+      const row = document.createElement("div");
+      row.className = "subcategory-row capital-subcategory-row";
+      row.draggable = true;
+      row.dataset.capitalCategory = category.name;
+      row.dataset.capitalSubcategory = sub;
+      row.innerHTML = `
+        <span>${sub}</span>
+        <div class="subcategory-tools">
+          <button class="chip" data-action="rename-capital-subcategory" data-category="${category.name}" data-subcategory="${sub}">Редактировать</button>
+          <button class="chip danger" data-action="delete-capital-subcategory" data-category="${category.name}" data-subcategory="${sub}">Удалить</button>
+        </div>
+      `;
+      list.appendChild(row);
     });
 
-    const card = document.createElement("div");
-    card.className = "capital-category-card";
-    card.innerHTML = `
-      <div class="capital-category-title">
-        <span>${category.name}</span>
-        <button class="button secondary" data-capital-category-delete="${category.name}">Удалить</button>
-      </div>
-    `;
-    const subs = document.createElement("div");
-    subs.className = "capital-category-subs";
-    if (!category.subs.length) {
-      subs.innerHTML = "<span class='hint'>Подкатегории не добавлены.</span>";
-    } else {
-      category.subs.forEach((sub) => {
-        const pill = document.createElement("span");
-        pill.className = "capital-subcategory";
-        pill.innerHTML = `
-          ${sub}
-          <button class="button secondary" data-capital-subcategory-delete="${category.name}" data-subcategory="${sub}">×</button>
-        `;
-        subs.appendChild(pill);
-      });
-    }
-    card.appendChild(subs);
+    header.appendChild(title);
+    header.appendChild(badge);
+    header.appendChild(actions);
+    card.appendChild(header);
+    card.appendChild(list);
     capitalCategoryManager.appendChild(card);
   });
+  renderCapitalCategoryHints();
+};
+
+const handleCapitalDragStart = (event) => {
+  const subRow = event.target.closest(".capital-subcategory-row");
+  const card = event.target.closest(".capital-category-card");
+  if (subRow) {
+    event.dataTransfer.setData("text/plain", JSON.stringify({
+      type: "subcategory",
+      category: subRow.dataset.capitalCategory,
+      subcategory: subRow.dataset.capitalSubcategory,
+    }));
+    event.dataTransfer.effectAllowed = "move";
+    subRow.classList.add("is-dragging");
+    return;
+  }
+  if (card) {
+    event.dataTransfer.setData("text/plain", JSON.stringify({
+      type: "category",
+      category: card.dataset.capitalCategory,
+    }));
+    event.dataTransfer.effectAllowed = "move";
+    card.classList.add("is-dragging");
+  }
+};
+
+const handleCapitalDragEnd = (event) => {
+  const row = event.target.closest(".capital-subcategory-row");
+  const card = event.target.closest(".capital-category-card");
+  if (row) row.classList.remove("is-dragging");
+  if (card) card.classList.remove("is-dragging");
+};
+
+const handleCapitalDrop = (event) => {
+  const list = event.target.closest(".subcategory-list");
+  const dropzone = event.target.closest("#capitalCategoryDropzone");
+  event.preventDefault();
+  if (list) list.classList.remove("is-drop-target");
+  if (dropzone) dropzone.classList.remove("is-drop-target");
+  const payload = event.dataTransfer.getData("text/plain");
+  if (!payload) return;
+  const data = JSON.parse(payload);
+  const targetCategory = list ? list.dataset.capitalDropzone : null;
+  if (list && targetCategory) {
+    if (data.type === "subcategory") {
+      moveCapitalSubcategory(data.category, data.subcategory, targetCategory);
+    }
+    if (data.type === "category") {
+      moveCapitalCategoryToCategory(data.category, targetCategory);
+    }
+    return;
+  }
+  if (dropzone && data.type === "subcategory") {
+    promoteCapitalSubcategoryToCategory(data.category, data.subcategory);
+  }
 };
 
 const renderCapitalAssets = () => {
@@ -2137,6 +2860,17 @@ const renderCapitalAssets = () => {
       });
       capitalAssetLiquidityFilter.value = assetFilters.liquidity;
     }
+    if (capitalAssetOwnerFilter) {
+      const owners = new Set(items.map((item) => (item.owner || "").trim()).filter(Boolean));
+      capitalAssetOwnerFilter.innerHTML = "<option value='all'>Все владельцы</option>";
+      [...owners].sort((a, b) => a.localeCompare(b, "ru")).forEach((owner) => {
+        const option = document.createElement("option");
+        option.value = owner;
+        option.textContent = owner;
+        capitalAssetOwnerFilter.appendChild(option);
+      });
+      capitalAssetOwnerFilter.value = assetFilters.owner;
+    }
   };
   if (capitalAssetSortDir) {
     capitalAssetSortDir.textContent = assetFilters.direction === "asc" ? "По возр." : "По убыв.";
@@ -2145,22 +2879,7 @@ const renderCapitalAssets = () => {
   if (capitalAssetSearch) {
     capitalAssetSearch.value = assetFilters.search;
   }
-
-  const assetValueInBase = (asset, field) => {
-    const value = field === "invested" ? (asset.invested ?? asset.amount ?? 0) : asset.amount;
-    const converted = capitalToBase(value, asset.currency);
-    if (converted == null && capitalIsUnconvertible(asset)) {
-      return null;
-    }
-    return converted ?? value;
-  };
-
-  const getProfitMeta = (amount, invested) => {
-    const profit = amount - invested;
-    const percent = invested > 0 ? (profit / invested) * 100 : null;
-    const isValid = Number.isFinite(percent) && Math.abs(percent) <= 999;
-    return { profit, percent: isValid ? percent : null, needsCheck: !isValid };
-  };
+  renderAssetActiveFilters();
 
   const filterAssets = items.filter((asset) => {
     if (assetFilters.type !== "all" && asset.type !== assetFilters.type) {
@@ -2169,8 +2888,11 @@ const renderCapitalAssets = () => {
     if (assetFilters.liquidity !== "all" && asset.liquidity !== assetFilters.liquidity) {
       return false;
     }
+    if (assetFilters.owner !== "all" && (asset.owner || "").trim() !== assetFilters.owner) {
+      return false;
+    }
     if (assetFilters.search) {
-      const haystack = `${asset.name} ${asset.note || ""}`.toLowerCase();
+      const haystack = `${asset.name} ${asset.note || ""} ${asset.owner || ""} ${asset.category || ""} ${asset.subcategory || ""}`.toLowerCase();
       if (!haystack.includes(assetFilters.search)) {
         return false;
       }
@@ -2250,15 +2972,15 @@ const renderCapitalAssets = () => {
 
   const grouped = new Map();
   sortedAssets.forEach((asset) => {
-    const typeLabel = capitalTypeLabel(asset.type) || "Без типа";
-    if (!grouped.has(typeLabel)) {
-      grouped.set(typeLabel, new Map());
+    const categoryLabel = asset.category || capitalTypeLabel(asset.type) || "Без категории";
+    if (!grouped.has(categoryLabel)) {
+      grouped.set(categoryLabel, new Map());
     }
     const subcategory = asset.subcategory || "Без подкатегории";
-    if (!grouped.get(typeLabel).has(subcategory)) {
-      grouped.get(typeLabel).set(subcategory, []);
+    if (!grouped.get(categoryLabel).has(subcategory)) {
+      grouped.get(categoryLabel).set(subcategory, []);
     }
-    grouped.get(typeLabel).get(subcategory).push(asset);
+    grouped.get(categoryLabel).get(subcategory).push(asset);
   });
 
   const renderGroupTotals = (assets) => {
@@ -2282,20 +3004,18 @@ const renderCapitalAssets = () => {
     const groupCard = document.createElement("div");
     groupCard.className = "asset-group";
     groupCard.innerHTML = `
-      <div class="asset-group-header">
-        <div>
+      <div class="asset-group-header" data-action="toggle-group" data-group="${groupName}" role="button" tabindex="0" aria-expanded="${isGroupOpen}">
+        <div class="asset-group-info">
           <h4>${groupName}</h4>
           <span class="asset-count">${groupAssets.length} актив(а)</span>
+          <div class="asset-group-totals">
+            <strong>${capitalFormatMoney(totalsGroup.amount)}</strong>
+            <span class="asset-profit ${groupMeta.profit < 0 ? "is-negative" : ""}">
+              ${capitalFormatMoney(groupMeta.profit)}
+            </span>
+          </div>
         </div>
-        <button class="chip" data-action="toggle-group" data-group="${groupName}" aria-expanded="${isGroupOpen}">
-          ${isGroupOpen ? "Свернуть" : "Развернуть"}
-        </button>
-        <div class="asset-group-totals">
-          <strong>${capitalFormatMoney(totalsGroup.amount)}</strong>
-          <span class="asset-profit ${groupMeta.profit < 0 ? "is-negative" : ""}">
-            ${capitalFormatMoney(groupMeta.profit)}
-          </span>
-        </div>
+        <span class="asset-header-toggle">${isGroupOpen ? "Свернуть" : "Развернуть"}</span>
       </div>
     `;
 
@@ -2310,20 +3030,18 @@ const renderCapitalAssets = () => {
       const subSection = document.createElement("div");
       subSection.className = "asset-subgroup";
       subSection.innerHTML = `
-        <div class="asset-subgroup-header">
-          <div>
+        <div class="asset-subgroup-header" data-action="toggle-subgroup" data-group="${groupName}" data-subgroup="${subcategoryName}" role="button" tabindex="0" aria-expanded="${isSubOpen}">
+          <div class="asset-group-info">
             <h5>${subcategoryName}</h5>
             <span class="asset-count">${assets.length} актив(а)</span>
+            <div class="asset-group-totals">
+              <strong>${capitalFormatMoney(totalsSub.amount)}</strong>
+              <span class="asset-profit ${subMeta.profit < 0 ? "is-negative" : ""}">
+                ${capitalFormatMoney(subMeta.profit)}
+              </span>
+            </div>
           </div>
-          <button class="chip" data-action="toggle-subgroup" data-group="${groupName}" data-subgroup="${subcategoryName}" aria-expanded="${isSubOpen}">
-            ${isSubOpen ? "Свернуть" : "Развернуть"}
-          </button>
-          <div class="asset-group-totals">
-            <strong>${capitalFormatMoney(totalsSub.amount)}</strong>
-            <span class="asset-profit ${subMeta.profit < 0 ? "is-negative" : ""}">
-              ${capitalFormatMoney(subMeta.profit)}
-            </span>
-          </div>
+          <span class="asset-header-toggle">${isSubOpen ? "Свернуть" : "Развернуть"}</span>
         </div>
       `;
 
@@ -2333,6 +3051,7 @@ const renderCapitalAssets = () => {
       assets.forEach((asset) => {
         const amountBase = assetValueInBase(asset, "amount");
         const investedBase = assetValueInBase(asset, "invested");
+        const hasRate = amountBase != null && investedBase != null;
         const amountLabel = amountBase == null
           ? `нет курса для ${asset.currency}`
           : capitalFormatMoney(amountBase);
@@ -2351,61 +3070,36 @@ const renderCapitalAssets = () => {
         const avatarMarkup = asset.avatarDataUrl
           ? `<img src="${asset.avatarDataUrl}" alt="" />`
           : `<span>${iconValue || iconLetter}</span>`;
-        const detailId = `asset-details-${asset.id}`;
-        const hasRate = amountBase != null && investedBase != null;
         const missingRateChip = hasRate ? "" : "<span class='chip chip-missing'>нет курса</span>";
 
         const card = document.createElement("div");
         card.className = "asset-item";
         card.dataset.assetId = asset.id;
         card.innerHTML = `
-          <div class="asset-item-main" data-action="toggle" role="button" tabindex="0" aria-expanded="false" aria-controls="${detailId}">
-            <span class="asset-avatar">${avatarMarkup}</span>
-            <span class="asset-main">
-              <span class="asset-title">${asset.name}</span>
-              <span class="asset-meta">${capitalTypeLabel(asset.type)} • ${asset.currency}</span>
-            </span>
-            <span class="asset-values">
-              <span class="asset-amount">${amountLabel}</span>
-              <span class="asset-invested">вложено ${investedLabel}</span>
-              ${missingRateChip}
-            </span>
-            <span class="asset-profit-block">
-              <span class="asset-profit ${profitMeta.profit < 0 ? "is-negative" : ""}">${profitLabel}</span>
-              <span class="asset-profit-percent ${showPercentWarning ? "is-warning" : ""}">
-                ${percentLabel}
+          <div class="asset-item-main" data-action="asset-details" data-id="${asset.id}" role="button" tabindex="0" aria-label="Открыть детали актива ${asset.name}">
+            <div class="asset-tile-top">
+              <span class="asset-avatar">${avatarMarkup}</span>
+              <span class="asset-main">
+                <span class="asset-title">${asset.name}</span>
+                <span class="asset-meta">${asset.category || capitalTypeLabel(asset.type)} • ${asset.currency}${asset.owner ? ` • ${asset.owner}` : ""}</span>
               </span>
-              ${showPercentWarning ? "<span class='asset-warning'>проверь данные</span><span class='chip chip-warning'>проверить</span>" : ""}
-            </span>
-            <span class="chip chip-liquidity">${liquidityLabel}</span>
-            <span class="asset-quick-actions">
-              <button class="chip" data-action="edit-asset" data-id="${asset.id}" type="button" aria-label="Редактировать">✎</button>
-              <button class="chip danger" data-action="delete-asset" data-id="${asset.id}" type="button" aria-label="Удалить">🗑</button>
-            </span>
-            <span class="chevron">›</span>
-          </div>
-          <div id="${detailId}" class="asset-details">
-            <div class="asset-detail-grid">
-              <div class="asset-detail-row">
-                <span>Дата окончания</span>
-                <strong>${asset.maturityDate || "—"}</strong>
-              </div>
-              <div class="asset-detail-row">
-                <span>Потенц. доходность</span>
-                <strong>${asset.expectedProfit != null && asset.expectedProfit !== "" ? asset.expectedProfit : "—"}</strong>
-              </div>
-              <div class="asset-detail-row">
-                <span>Комментарий</span>
-                <strong>${asset.note || "—"}</strong>
-              </div>
-              <div class="asset-detail-row">
-                <span>Валюта</span>
-                <strong>${asset.currency}</strong>
-              </div>
             </div>
-            <div class="asset-detail-actions">
-              <button class="button secondary" data-action="edit-asset" data-id="${asset.id}">Редактировать</button>
-              <button class="button danger" data-action="delete-asset" data-id="${asset.id}">Удалить</button>
+            <div class="asset-tile-metrics">
+              <div class="asset-primary-row">
+                <span class="asset-label">Сейчас</span>
+                <strong class="asset-amount">${amountLabel}</strong>
+              </div>
+              <div class="asset-secondary-rows">
+                <span class="asset-secondary-row"><span>Вложено</span><strong>${investedLabel}</strong></span>
+                <span class="asset-secondary-row"><span>Прибыль</span><strong class="asset-profit ${profitMeta.profit < 0 ? "is-negative" : ""}">${profitLabel}</strong></span>
+              </div>
+              <span class="asset-profit-percent ${showPercentWarning ? "is-warning" : ""}">${percentLabel}</span>
+            </div>
+            <div class="asset-tile-bottom">
+              <span class="chip chip-liquidity">${liquidityLabel}</span>
+              ${missingRateChip}
+              ${showPercentWarning ? "<span class='chip chip-warning'>проверь данные</span>" : ""}
+              <span class="asset-toggle-label">Подробнее</span>
             </div>
           </div>
         `;
@@ -2655,6 +3349,7 @@ const renderCapitalHistoryChart = () => {
     line.setAttribute("stroke", color);
     line.setAttribute("stroke-width", "3");
     line.setAttribute("stroke-linecap", "round");
+    line.classList.add("report-line");
     return line;
   };
 
@@ -2761,6 +3456,179 @@ const capitalSetAssetModal = (isOpen) => {
   }
 };
 
+const setAssetDetailsModal = (isOpen) => {
+  if (!assetDetailsModal || !assetDetailsOverlay) {
+    return;
+  }
+  assetDetailsModal.classList.toggle("is-open", isOpen);
+  assetDetailsModal.setAttribute("aria-hidden", String(!isOpen));
+  assetDetailsOverlay.classList.toggle("is-active", isOpen);
+  if (!isOpen) {
+    lastAssetOperationUndo = null;
+    if (assetOperationUndo) {
+      assetOperationUndo.classList.add("is-hidden");
+    }
+  }
+};
+
+const setCapitalCategoryModal = (isOpen) => {
+  if (!capitalCategoryModal || !capitalCategoryModalOverlay) {
+    return;
+  }
+  capitalCategoryModal.classList.toggle("is-open", isOpen);
+  capitalCategoryModal.setAttribute("aria-hidden", String(!isOpen));
+  capitalCategoryModalOverlay.classList.toggle("is-active", isOpen);
+  document.body.classList.toggle("modal-open", isOpen);
+  if (!isOpen) {
+    capitalCategoryModalState = null;
+    if (capitalCategoryModalForm) {
+      capitalCategoryModalForm.reset();
+    }
+  }
+};
+
+const openCapitalCategoryModal = ({ title, submitLabel, initialValue = "", requiresValue = true, onSubmit }) => {
+  capitalCategoryModalState = { requiresValue, onSubmit };
+  if (capitalCategoryModalTitle) {
+    capitalCategoryModalTitle.textContent = title;
+  }
+  if (capitalCategoryModalSubmit) {
+    capitalCategoryModalSubmit.textContent = submitLabel;
+    capitalCategoryModalSubmit.classList.toggle("danger", submitLabel.toLowerCase().includes("удал"));
+    capitalCategoryModalSubmit.classList.toggle("primary", !submitLabel.toLowerCase().includes("удал"));
+  }
+  if (capitalCategoryModalInput) {
+    capitalCategoryModalInput.value = initialValue;
+    capitalCategoryModalInput.closest("label")?.classList.toggle("is-hidden", !requiresValue);
+  }
+  setCapitalCategoryModal(true);
+  capitalCategoryModalInput?.focus();
+};
+
+const renderAssetActiveFilters = () => {
+  if (!capitalAssetActiveFilters) {
+    return;
+  }
+  const chips = [];
+  if (assetFilters.search) chips.push({ key: "search", label: `Поиск: ${assetFilters.search}` });
+  if (assetFilters.type !== "all") chips.push({ key: "type", label: `Тип: ${capitalTypeLabel(assetFilters.type)}` });
+  if (assetFilters.liquidity !== "all") chips.push({ key: "liquidity", label: `Ликвидность: ${capitalLiquidityShort(assetFilters.liquidity)}` });
+  if (assetFilters.owner !== "all") chips.push({ key: "owner", label: `Владелец: ${assetFilters.owner}` });
+
+  if (!chips.length) {
+    capitalAssetActiveFilters.innerHTML = "";
+    return;
+  }
+  capitalAssetActiveFilters.innerHTML = chips
+    .map((chip) => `<button type="button" class="chip" data-clear-filter="${chip.key}">${chip.label} ✕</button>`)
+    .join("");
+};
+
+const getAssetDetailsListIds = () => {
+  if (!capitalAssetsList) {
+    return [];
+  }
+  return [...capitalAssetsList.querySelectorAll(".asset-item-main[data-action='asset-details']")]
+    .map((el) => el.dataset.id)
+    .filter(Boolean);
+};
+
+const applyAssetDetailsMode = (mode = "view") => {
+  assetDetailsViewMode = mode;
+  if (!assetDetailsModal) {
+    return;
+  }
+  const editable = mode === "edit";
+  assetDetailsModal.classList.toggle("is-edit-mode", editable);
+  if (assetDetailsMode) {
+    assetDetailsMode.textContent = editable ? "Режим: редактирование" : "Режим: просмотр";
+  }
+  [assetOperationType, assetOperationAmount, assetOperationNote].forEach((field) => {
+    if (field) {
+      field.disabled = !editable;
+    }
+  });
+  const submitButton = assetOperationForm?.querySelector("button[type='submit']");
+  if (submitButton) {
+    submitButton.disabled = !editable;
+  }
+};
+
+const renderAssetHistory = (asset) => {
+  if (!assetDetailsHistory) {
+    return;
+  }
+  const logs = (asset.history || [])
+    .map((item, index) => ({ ...item, __index: index }))
+    .sort((a, b) => String(b.ts || "").localeCompare(String(a.ts || "")));
+  if (assetHistoryClear) {
+    assetHistoryClear.disabled = !logs.length;
+  }
+  if (!logs.length) {
+    assetDetailsHistory.innerHTML = "<div class='asset-history-empty'><p>Пока нет записей.</p><button id='assetHistoryFirstAction' type='button' class='button secondary'>Добавить первое действие</button></div>";
+    return;
+  }
+  let currentDay = "";
+  assetDetailsHistory.innerHTML = logs.map((item) => {
+    const parsedAmount = Number.parseFloat(String(item.amount));
+    const amountText = Number.isFinite(parsedAmount) ? capitalFormatMoney(parsedAmount) : "—";
+    const note = item.note ? `<span class='asset-history-note'>${item.note}</span>` : "";
+    const date = new Date(item.ts);
+    const dayLabel = Number.isNaN(date.getTime()) ? "Без даты" : date.toLocaleDateString("ru-RU");
+    const dayHeader = dayLabel !== currentDay ? `<div class='asset-history-day'>${dayLabel}</div>` : "";
+    currentDay = dayLabel;
+    return `${dayHeader}<article class='asset-history-item asset-history-item--${item.type || "note"}'>
+      <div class='asset-history-head'>
+        <strong class='asset-history-item-title'>${assetOperationLabel(item.type)}</strong>
+        <div class='asset-history-actions'>
+          <span class='asset-history-item-amount'>${amountText}</span>
+          <button type='button' class='chip danger asset-history-delete' data-action='delete-asset-history' data-history-index='${item.__index}' aria-label='Удалить запись истории'>Удалить</button>
+        </div>
+      </div>
+      <span class='asset-history-item-meta'>${new Date(item.ts).toLocaleString("ru-RU")}</span>
+      ${note}
+    </article>`;
+  }).join("");
+};
+
+const openAssetDetailsModal = (assetId) => {
+  const asset = capitalState.assets.find((item) => item.id === assetId);
+  if (!asset) {
+    return;
+  }
+  selectedAssetDetailsId = assetId;
+  const amountBase = assetValueInBase(asset, "amount");
+  const investedBase = assetValueInBase(asset, "invested");
+  const profitMeta = getProfitMeta(amountBase ?? 0, investedBase ?? 0);
+  if (assetDetailsTitle) {
+    assetDetailsTitle.textContent = asset.name || "Детали актива";
+  }
+  if (assetDetailsMeta) {
+    assetDetailsMeta.textContent = `${capitalTypeLabel(asset.type)} • ${asset.currency} • ${asset.subcategory || "Без подкатегории"}${asset.owner ? ` • ${asset.owner}` : ""}`;
+  }
+  if (assetDetailsCurrent) {
+    assetDetailsCurrent.textContent = amountBase == null ? `нет курса для ${asset.currency}` : capitalFormatMoney(amountBase);
+  }
+  if (assetDetailsInvested) {
+    assetDetailsInvested.textContent = investedBase == null ? "нет курса" : capitalFormatMoney(investedBase);
+  }
+  if (assetDetailsProfit) {
+    assetDetailsProfit.textContent = amountBase == null || investedBase == null ? "—" : capitalFormatMoney(profitMeta.profit);
+    assetDetailsProfit.classList.toggle("is-negative", profitMeta.profit < 0);
+  }
+  renderAssetHistory(asset);
+  const ids = getAssetDetailsListIds();
+  const index = ids.indexOf(assetId);
+  if (assetDetailsPrev) {
+    assetDetailsPrev.disabled = index <= 0;
+  }
+  if (assetDetailsNext) {
+    assetDetailsNext.disabled = index < 0 || index >= ids.length - 1;
+  }
+  applyAssetDetailsMode("view");
+  setAssetDetailsModal(true);
+};
+
 const capitalIsAssetModalOpen = () =>
   capitalAssetDrawer ? capitalAssetDrawer.classList.contains("is-modal") : false;
 
@@ -2837,17 +3705,14 @@ const capitalUpdateSnapshotNote = (month, note) => {
 
 const capitalResetAssetForm = () => {
   capitalAssetForm.reset();
+  if (capitalAssetOwner) {
+    capitalAssetOwner.value = "";
+  }
   capitalAssetCurrency.value = capitalState.settings.baseCurrency;
   capitalAssetMaturityDate.value = "";
-  capitalAssetSubcategory.value = "";
   capitalAssetExpectedProfit.value = "";
-  if (capitalAssetIcon) {
-    capitalAssetIcon.value = "";
-  }
-  if (capitalAssetAvatar) {
-    capitalAssetAvatar.value = "";
-  }
-  capitalAssetAvatarDataUrl = "";
+  renderCapitalAssetCategoryOptions();
+  renderCapitalSubcategoryOptions();
   capitalEditingAssetId = null;
   const submitButton = capitalAssetForm.querySelector('button[type="submit"]');
   if (submitButton) {
@@ -2865,19 +3730,18 @@ const capitalFillAssetForm = (asset) => {
   capitalSetAssetDrawer(true);
   capitalSetAssetModal(true);
   capitalAssetName.value = asset.name || "";
-  capitalAssetType.value = asset.type || "cash";
+  if (capitalAssetOwner) {
+    capitalAssetOwner.value = asset.owner || "";
+  }
+  renderCapitalAssetCategoryOptions(asset.category || capitalTypeLabel(asset.type || "cash"));
   capitalAssetCurrency.value = asset.currency || capitalState.settings.baseCurrency;
   capitalAssetAmount.value = asset.amount ?? 0;
   capitalAssetInvested.value = asset.invested ?? asset.amount ?? 0;
-  capitalAssetSubcategory.value = asset.subcategory || "";
+  renderCapitalSubcategoryOptions(asset.subcategory || "");
   capitalAssetMaturityDate.value = asset.maturityDate || "";
   capitalAssetLiquidity.value = asset.liquidity || "high";
   capitalAssetExpectedProfit.value = asset.expectedProfit ?? "";
   capitalAssetNote.value = asset.note || "";
-  if (capitalAssetIcon) {
-    capitalAssetIcon.value = asset.icon || "";
-  }
-  capitalAssetAvatarDataUrl = asset.avatarDataUrl || "";
   capitalEditingAssetId = asset.id;
   const submitButton = capitalAssetForm.querySelector('button[type="submit"]');
   if (submitButton) {
@@ -2903,31 +3767,36 @@ const capitalAddAsset = () => {
     showError("Заполните название и сумму актива.");
     return;
   }
-  const subcategoryValue = capitalAssetSubcategory.value.trim();
-  const isDeposit = capitalAssetType.value === "deposit";
+  const subcategoryValue = capitalSubcategorySelect ? capitalSubcategorySelect.value.trim() : "";
+  const selectedType = getSelectedCapitalAssetType();
+  const isDeposit = selectedType === "deposit";
   const amountParsed = Number.parseFloat(amountInput);
   const amount = Number.isNaN(amountParsed) ? invested : amountParsed;
-  const resolvedCategory = capitalTypeLabel(capitalAssetType.value);
+  const resolvedCategory = getSelectedCapitalAssetCategory() || capitalTypeLabel(selectedType);
   if (resolvedCategory) {
     capitalEnsureCategory(resolvedCategory, subcategoryValue);
   }
   const payload = {
     name,
-    type: capitalAssetType.value,
+    type: selectedType,
     currency: capitalAssetCurrency.value.trim().toUpperCase() || capitalState.settings.baseCurrency,
     amount,
     invested,
     section: isDeposit ? "Вклады" : "В наличии",
     category: resolvedCategory,
     subcategory: subcategoryValue,
+    owner: capitalAssetOwner?.value.trim() || "",
     liquidity: capitalAssetLiquidity.value,
     expectedProfit: isDeposit && capitalAssetExpectedProfit.value
       ? Number.parseFloat(capitalAssetExpectedProfit.value)
       : null,
     maturityDate: isDeposit ? capitalAssetMaturityDate.value : "",
     note: capitalAssetNote.value.trim(),
-    icon: capitalAssetIcon ? capitalAssetIcon.value.trim() : "",
-    avatarDataUrl: capitalAssetAvatarDataUrl || "",
+    icon: capitalDefaultIcon(selectedType),
+    avatarDataUrl: "",
+    history: capitalEditingAssetId
+      ? (capitalState.assets.find((item) => item.id === capitalEditingAssetId)?.history || [])
+      : [{ type: "create", amount, note: "Актив создан", ts: capitalNowIso() }],
   };
   if (capitalEditingAssetId) {
     const existing = capitalState.assets.find((item) => item.id === capitalEditingAssetId);
@@ -2936,6 +3805,7 @@ const capitalAddAsset = () => {
       return;
     }
     Object.assign(existing, payload, { updatedAt: capitalNowIso() });
+    existing.history = [...(existing.history || []), { type: "update", amount, note: "Параметры актива обновлены", ts: capitalNowIso() }];
     existing.unconvertible = capitalIsUnconvertible(existing);
     ensureFxRateForCurrency(existing.currency);
   } else {
@@ -3403,7 +4273,9 @@ const render = (viewId = activeView) => {
   }
   if (viewId === "transactions") {
     updateSummary();
+    renderCategoryOptions();
     renderTable();
+    updateTransactionFormState();
     return;
   }
   if (viewId === "categories") {
@@ -3529,6 +4401,7 @@ const bindEvents = () => {
       recordUndo("addTx", { id: transactions[transactions.length - 1].id });
       Storage.set(STORAGE_KEY, JSON.stringify(transactions));
       render();
+      showToast("Операция сохранена");
       resetForm();
       updateTransactionFormState();
     }, "добавление операции"));
@@ -3612,12 +4485,34 @@ on(undoButton, "click", undoLastAction, "undo");
 
   on(tableBody, "click", (event) => {
     const target = event.target;
-    if (!(target instanceof HTMLButtonElement)) {
+    if (!(target instanceof HTMLButtonElement) && !(target instanceof HTMLInputElement)) {
       return;
     }
 
     const id = target.dataset.id;
+    const action = target.dataset.action;
     if (!id) {
+      return;
+    }
+
+    if (action === "select-tx") {
+      if (target.checked) {
+        selectedTransactionIds.add(id);
+      } else {
+        selectedTransactionIds.delete(id);
+      }
+      if (deleteSelectedTransactionsButton) {
+        deleteSelectedTransactionsButton.disabled = selectedTransactionIds.size === 0;
+      }
+      return;
+    }
+
+    if (action === "edit-tx") {
+      openEditTransactionModal(id);
+      return;
+    }
+
+    if (action && action !== "delete-tx") {
       return;
     }
 
@@ -3627,10 +4522,48 @@ on(undoButton, "click", undoLastAction, "undo");
       return;
     }
     transactions = transactions.filter((item) => item.id !== id);
+    selectedTransactionIds.delete(id);
     recordUndo("deleteTx", { item: deleted, index });
     Storage.set(STORAGE_KEY, JSON.stringify(transactions));
     render();
-  }, "удаление операции");
+  }, "удаление/редактирование операции");
+
+
+  on(transactionSearchInput, "input", (event) => {
+    transactionFilters.search = event.target.value;
+    renderTable();
+  }, "поиск операций");
+
+  on(transactionTypeFilter, "change", (event) => {
+    transactionFilters.type = event.target.value;
+    renderTable();
+  }, "фильтр типа операции");
+
+  on(transactionCategoryFilter, "change", (event) => {
+    transactionFilters.category = event.target.value;
+    renderTable();
+  }, "фильтр категории операции");
+
+  on(selectAllTransactionsButton, "click", () => {
+    const filtered = getFilteredTransactions();
+    selectedTransactionIds = new Set(filtered.map((item) => item.id));
+    renderTable();
+  }, "выбрать операции");
+
+  on(deleteSelectedTransactionsButton, "click", () => {
+    if (selectedTransactionIds.size === 0) {
+      return;
+    }
+    if (!confirm(`Удалить выбранные операции: ${selectedTransactionIds.size}?`)) {
+      return;
+    }
+    transactions = transactions.filter((item) => !selectedTransactionIds.has(item.id));
+    selectedTransactionIds = new Set();
+    Storage.set(STORAGE_KEY, JSON.stringify(transactions));
+    showToast("Выбранные операции удалены");
+    render();
+  }, "массовое удаление операций");
+
 
 on(exportButton, "click", () => {
   if (transactions.length === 0) {
@@ -3688,9 +4621,18 @@ onAll(reportRangeButtons, "click", (event) => {
   reportRangeButtons.forEach((item) => item.classList.remove("is-active"));
   event.currentTarget.classList.add("is-active");
   const range = event.currentTarget.dataset.reportRange;
+  const now = new Date();
   if (range === "all") {
     const bounds = getDateBounds(transactions);
     setReportRange(bounds.start, bounds.end);
+  } else if (range === "this-month") {
+    const start = new Date(now.getFullYear(), now.getMonth(), 1);
+    const end = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    setReportRange(start.toISOString().slice(0, 10), end.toISOString().slice(0, 10));
+  } else if (range === "prev-month") {
+    const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+    const end = new Date(now.getFullYear(), now.getMonth(), 0);
+    setReportRange(start.toISOString().slice(0, 10), end.toISOString().slice(0, 10));
   } else {
     const days = Number.parseInt(range, 10);
     const bounds = getDateBounds(transactions);
@@ -3709,6 +4651,40 @@ onAll(reportGranularityButtons, "click", (event) => {
   reportGranularity = event.currentTarget.dataset.reportGranularity;
   renderReports();
 }, "гранулярность отчета");
+
+
+on(reportMonthSelect, "change", (event) => {
+  const month = event.target.value;
+  if (!month) {
+    return;
+  }
+  reportRangeButtons.forEach((item) => item.classList.remove("is-active"));
+  const start = `${month}-01`;
+  const endDate = new Date(Number(month.slice(0, 4)), Number(month.slice(5, 7)), 0);
+  const end = endDate.toISOString().slice(0, 10);
+  setReportRange(start, end);
+  renderReports();
+}, "выбор месяца отчета");
+
+on(toggleExpenseSubcategoryPieButton, "click", () => {
+  showExpenseSubcategoryPieDetails = !showExpenseSubcategoryPieDetails;
+  renderCharts();
+}, "детали pie");
+
+on(transactionEditClose, "click", () => {
+  setTransactionEditModal(false);
+  editingTransactionId = null;
+}, "закрыть редактирование операции");
+
+on(transactionEditOverlay, "click", () => {
+  setTransactionEditModal(false);
+  editingTransactionId = null;
+}, "overlay редактирования операции");
+
+on(transactionEditForm, "submit", (event) => {
+  event.preventDefault();
+  saveEditedTransaction();
+}, "сохранение редактирования операции");
 
 on(applyReportRangeButton, "click", () => {
   reportRangeButtons.forEach((item) => item.classList.remove("is-active"));
@@ -3754,20 +4730,6 @@ onAll(capitalTabs, "click", (event) => {
     capitalResetAssetForm();
   }, "overlay asset");
 
-  on(capitalAssetAvatar, "change", async (event) => {
-    const file = event.target.files?.[0];
-    if (!file) {
-      return;
-    }
-    capitalAssetAvatarDataUrl = await compressImageToDataUrl(file);
-  }, "avatar upload");
-
-  on(capitalAssetAvatarRemove, "click", () => {
-    capitalAssetAvatarDataUrl = "";
-    if (capitalAssetAvatar) {
-      capitalAssetAvatar.value = "";
-    }
-  }, "avatar remove");
 
   on(document, "keydown", (event) => {
     if (event.key !== "Escape") {
@@ -3777,6 +4739,10 @@ onAll(capitalTabs, "click", (event) => {
       capitalSetAssetModal(false);
       capitalSetAssetDrawer(false);
       capitalResetAssetForm();
+      return;
+    }
+    if (capitalCategoryModal?.classList.contains("is-open")) {
+      setCapitalCategoryModal(false);
     }
   }, "escape close");
 
@@ -3840,8 +4806,7 @@ onAll(capitalTabs, "click", (event) => {
     });
   }, "вид активов");
 
-  on(capitalCategoryForm, "submit", (event) => {
-    event.preventDefault();
+  on(addCapitalCategoryButton, "click", () => {
     const category = capitalCategoryName.value.trim();
     const subcategory = capitalSubcategoryName.value.trim();
     if (!category) {
@@ -3849,34 +4814,89 @@ onAll(capitalTabs, "click", (event) => {
       return;
     }
     capitalEnsureCategory(category, subcategory);
-    saveCapitalV2(capitalState);
-    renderCapitalCategories();
-    capitalCategoryForm.reset();
+    saveAndRenderCapitalCategories();
+    capitalCategoryName.value = "";
+    capitalSubcategoryName.value = "";
   }, "категории капитала");
+
+  on(capitalCategoryName, "keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      addCapitalCategoryButton?.click();
+    }
+  }, "ввод категории капитала");
+
+  on(capitalSubcategoryName, "keydown", (event) => {
+    if (event.key === "Enter") {
+      event.preventDefault();
+      addCapitalCategoryButton?.click();
+    }
+  }, "ввод подкатегории капитала");
+
+  on(capitalCategoryName, "input", () => {
+    renderCapitalCategoryHints();
+  }, "подсказки категорий капитала");
+
+  on(capitalSubcategoryName, "focus", () => {
+    renderCapitalCategoryHints();
+  }, "подсказки подкатегорий капитала");
 
   on(capitalCategoryManager, "click", (event) => {
     const target = event.target;
-    if (!(target instanceof HTMLButtonElement)) {
+    if (!(target instanceof HTMLButtonElement) && !(target instanceof HTMLInputElement)) {
       return;
     }
-    const categoryName = target.dataset.capitalCategoryDelete;
+    const action = target.dataset.action;
+    const categoryName = target.dataset.category;
     const subcategoryName = target.dataset.subcategory;
-    if (categoryName && !subcategoryName) {
-      capitalState.assetCategories = capitalState.assetCategories.filter((category) => category.name !== categoryName);
-      saveCapitalV2(capitalState);
-      renderCapitalCategories();
+    if (action === "rename-capital-category" && categoryName) {
+      openCapitalCategoryModal({
+        title: "Переименовать категорию капитала",
+        submitLabel: "Сохранить",
+        initialValue: categoryName,
+        requiresValue: true,
+        onSubmit: (value) => renameCapitalCategory(categoryName, value),
+      });
       return;
     }
-    if (categoryName && subcategoryName) {
-      const category = capitalState.assetCategories.find((item) => item.name === categoryName);
-      if (!category) {
-        return;
-      }
-      category.subs = category.subs.filter((sub) => sub !== subcategoryName);
-      saveCapitalV2(capitalState);
-      renderCapitalCategories();
+    if (action === "delete-capital-category" && categoryName) {
+      openCapitalCategoryModal({
+        title: `Удалить категорию «${categoryName}»?`,
+        submitLabel: "Удалить",
+        requiresValue: false,
+        onSubmit: () => deleteCapitalCategory(categoryName),
+      });
+      return;
     }
-  }, "удаление категории капитала");
+    if (action === "rename-capital-subcategory" && categoryName && subcategoryName) {
+      openCapitalCategoryModal({
+        title: "Переименовать подкатегорию",
+        submitLabel: "Сохранить",
+        initialValue: subcategoryName,
+        requiresValue: true,
+        onSubmit: (value) => renameCapitalSubcategory(categoryName, subcategoryName, value),
+      });
+      return;
+    }
+    if (action === "delete-capital-subcategory" && categoryName && subcategoryName) {
+      openCapitalCategoryModal({
+        title: `Удалить подкатегорию «${subcategoryName}»?`,
+        submitLabel: "Удалить",
+        requiresValue: false,
+        onSubmit: () => deleteCapitalSubcategory(categoryName, subcategoryName),
+      });
+    }
+  }, "управление категориями капитала");
+
+  on(capitalCategoryManager, "dragstart", handleCapitalDragStart, "dragstart категории капитала");
+  on(capitalCategoryManager, "dragend", handleCapitalDragEnd, "dragend категории капитала");
+  on(capitalCategoryManager, "dragover", handleDragOver, "dragover категории капитала");
+  on(capitalCategoryManager, "dragleave", handleDragLeave, "dragleave категории капитала");
+  on(capitalCategoryManager, "drop", handleCapitalDrop, "drop категории капитала");
+  on(capitalCategoryDropzone, "dragover", handleDragOver, "dragover capital root");
+  on(capitalCategoryDropzone, "dragleave", handleDragLeave, "dragleave capital root");
+  on(capitalCategoryDropzone, "drop", handleCapitalDrop, "drop capital root");
+  on(capitalCategoryDropzone, "dragend", handleCapitalDragEnd, "dragend capital root");
 
   onAll(capitalOverviewFilters, "click", (event) => {
     capitalOverviewFilters.forEach((item) => item.classList.remove("is-active"));
@@ -3886,13 +4906,14 @@ onAll(capitalTabs, "click", (event) => {
   }, "фильтр капитала");
 
   on(capitalAssetType, "change", () => {
-    const isDeposit = capitalAssetType.value === "deposit";
+    const isDeposit = getSelectedCapitalAssetType() === "deposit";
     capitalAssetExpectedProfit.disabled = !isDeposit;
     capitalAssetMaturityDate.disabled = !isDeposit;
     if (!isDeposit) {
       capitalAssetExpectedProfit.value = "";
       capitalAssetMaturityDate.value = "";
     }
+    renderCapitalSubcategoryOptions();
   }, "тип актива");
 
   on(capitalAssetSearch, "input", (event) => {
@@ -3909,6 +4930,41 @@ onAll(capitalTabs, "click", (event) => {
     assetFilters.liquidity = event.target.value;
     renderCapitalAssets();
   }, "фильтр ликвидности");
+
+  on(capitalAssetOwnerFilter, "change", (event) => {
+    assetFilters.owner = event.target.value;
+    renderCapitalAssets();
+  }, "фильтр владельца");
+
+  on(capitalAssetFiltersReset, "click", () => {
+    assetFilters.search = "";
+    assetFilters.type = "all";
+    assetFilters.liquidity = "all";
+    assetFilters.owner = "all";
+    renderCapitalAssets();
+  }, "сброс фильтров активов");
+
+  onAll(capitalAssetOwnerPresetButtons, "click", (event) => {
+    const owner = event.currentTarget.dataset.ownerPreset;
+    if (!owner) {
+      return;
+    }
+    assetFilters.owner = owner;
+    renderCapitalAssets();
+  }, "пресеты владельцев активов");
+
+  on(capitalAssetActiveFilters, "click", (event) => {
+    const button = event.target.closest("[data-clear-filter]");
+    if (!button) {
+      return;
+    }
+    const key = button.dataset.clearFilter;
+    if (key === "search") assetFilters.search = "";
+    if (key === "type") assetFilters.type = "all";
+    if (key === "liquidity") assetFilters.liquidity = "all";
+    if (key === "owner") assetFilters.owner = "all";
+    renderCapitalAssets();
+  }, "активные фильтры активов");
 
   on(capitalAssetSort, "change", (event) => {
     assetFilters.sort = event.target.value;
@@ -3939,16 +4995,8 @@ onAll(capitalTabs, "click", (event) => {
       return;
     }
 
-    if (action === "toggle") {
-      const isExpanded = actionButton.getAttribute("aria-expanded") === "true";
-      actionButton.setAttribute("aria-expanded", String(!isExpanded));
-      const detailsId = actionButton.getAttribute("aria-controls");
-      if (detailsId) {
-        const details = document.getElementById(detailsId);
-        if (details) {
-          details.classList.toggle("is-open", !isExpanded);
-        }
-      }
+    if (action === "asset-details") {
+      openAssetDetailsModal(assetId);
       return;
     }
 
@@ -3956,6 +5004,10 @@ onAll(capitalTabs, "click", (event) => {
       const groupName = actionButton.dataset.group;
       if (groupName) {
         assetUiState.groups[groupName] = !(assetUiState.groups[groupName] ?? true);
+        const toggleLabel = actionButton.querySelector(".asset-header-toggle");
+        if (toggleLabel) {
+          toggleLabel.textContent = assetUiState.groups[groupName] ? "Свернуть" : "Развернуть";
+        }
         persistAssetUiState();
         renderCapitalAssets();
       }
@@ -3968,6 +5020,10 @@ onAll(capitalTabs, "click", (event) => {
       if (groupName && subName) {
         const key = `${groupName}::${subName}`;
         assetUiState.subgroups[key] = !(assetUiState.subgroups[key] ?? true);
+        const toggleLabel = actionButton.querySelector(".asset-header-toggle");
+        if (toggleLabel) {
+          toggleLabel.textContent = assetUiState.subgroups[key] ? "Свернуть" : "Развернуть";
+        }
         persistAssetUiState();
         renderCapitalAssets();
       }
@@ -4001,7 +5057,7 @@ onAll(capitalTabs, "click", (event) => {
   }, "действия по активу");
 
   on(capitalAssetsList, "keydown", (event) => {
-    const target = event.target.closest("[data-action='toggle']");
+    const target = event.target.closest("[data-action='asset-details'], [data-action='toggle-group'], [data-action='toggle-subgroup']");
     if (!target) {
       return;
     }
@@ -4009,7 +5065,241 @@ onAll(capitalTabs, "click", (event) => {
       event.preventDefault();
       target.click();
     }
-  }, "toggle details");
+  }, "details modal");
+
+  on(assetDetailsClose, "click", () => {
+    setAssetDetailsModal(false);
+    selectedAssetDetailsId = null;
+  }, "close asset details");
+
+  on(assetDetailsOverlay, "click", () => {
+    setAssetDetailsModal(false);
+    selectedAssetDetailsId = null;
+  }, "overlay asset details");
+
+  on(capitalCategoryModalClose, "click", () => {
+    setCapitalCategoryModal(false);
+  }, "close capital category modal");
+
+  on(capitalCategoryModalOverlay, "click", () => {
+    setCapitalCategoryModal(false);
+  }, "overlay capital category modal");
+
+  on(capitalCategoryModalForm, "submit", (event) => {
+    event.preventDefault();
+    if (!capitalCategoryModalState?.onSubmit) {
+      return;
+    }
+    const value = capitalCategoryModalInput?.value?.trim() || "";
+    if (capitalCategoryModalState.requiresValue && !value) {
+      showError("Введите значение.");
+      return;
+    }
+    capitalCategoryModalState.onSubmit(value);
+    setCapitalCategoryModal(false);
+  }, "submit capital category modal");
+
+  on(assetDetailsMode, "click", () => {
+    applyAssetDetailsMode(assetDetailsViewMode === "view" ? "edit" : "view");
+    if (assetDetailsViewMode === "edit") {
+      assetOperationType?.focus();
+    }
+  }, "toggle asset details mode");
+
+  on(assetDetailsPrev, "click", () => {
+    const ids = getAssetDetailsListIds();
+    const idx = ids.indexOf(selectedAssetDetailsId);
+    if (idx > 0) {
+      openAssetDetailsModal(ids[idx - 1]);
+    }
+  }, "asset prev");
+
+  on(assetDetailsNext, "click", () => {
+    const ids = getAssetDetailsListIds();
+    const idx = ids.indexOf(selectedAssetDetailsId);
+    if (idx >= 0 && idx < ids.length - 1) {
+      openAssetDetailsModal(ids[idx + 1]);
+    }
+  }, "asset next");
+
+  onAll(assetTemplateButtons, "click", (event) => {
+    const key = event.currentTarget.dataset.assetTemplate;
+    if (!key) return;
+    applyAssetDetailsMode("edit");
+    if (key === "salary") {
+      if (assetOperationType) assetOperationType.value = "deposit";
+      if (assetOperationNote) assetOperationNote.value = "Пополнение с зарплаты";
+    }
+    if (key === "rebalance") {
+      if (assetOperationType) assetOperationType.value = "adjust";
+      if (assetOperationNote) assetOperationNote.value = "Корректировка после ребаланса";
+    }
+    if (key === "note-month") {
+      if (assetOperationType) assetOperationType.value = "note";
+      if (assetOperationNote) assetOperationNote.value = "Итог месяца";
+    }
+    assetOperationAmount?.focus();
+  }, "asset templates");
+
+  on(assetDetailsHistory, "click", (event) => {
+    const btn = event.target.closest("#assetHistoryFirstAction");
+    if (!btn) return;
+    applyAssetDetailsMode("edit");
+    assetOperationType?.focus();
+  }, "asset history first action");
+
+  on(assetDetailsHistory, "click", (event) => {
+    const deleteButton = event.target.closest("[data-action='delete-asset-history']");
+    if (!deleteButton || !selectedAssetDetailsId) {
+      return;
+    }
+    const historyIndex = Number.parseInt(deleteButton.dataset.historyIndex || "", 10);
+    if (!Number.isInteger(historyIndex) || historyIndex < 0) {
+      return;
+    }
+    const asset = capitalState.assets.find((item) => item.id === selectedAssetDetailsId);
+    if (!asset || !Array.isArray(asset.history) || !asset.history[historyIndex]) {
+      return;
+    }
+    if (!confirm("Удалить эту запись из истории?")) {
+      return;
+    }
+    asset.history.splice(historyIndex, 1);
+    asset.updatedAt = capitalNowIso();
+    saveCapitalV2(capitalState);
+    renderAssetHistory(asset);
+    renderCapitalView();
+    showToast("Запись истории удалена");
+  }, "delete asset history item");
+
+  on(assetHistoryClear, "click", () => {
+    if (!selectedAssetDetailsId) {
+      return;
+    }
+    const asset = capitalState.assets.find((item) => item.id === selectedAssetDetailsId);
+    if (!asset) {
+      return;
+    }
+    if (!Array.isArray(asset.history) || !asset.history.length) {
+      showToast("История уже пустая");
+      return;
+    }
+    if (!confirm("Очистить всю историю этого актива?")) {
+      return;
+    }
+    asset.history = [];
+    asset.updatedAt = capitalNowIso();
+    saveCapitalV2(capitalState);
+    renderAssetHistory(asset);
+    renderCapitalView();
+    showToast("История актива очищена");
+  }, "clear asset history");
+
+  on(assetOperationUndo, "click", () => {
+    if (!lastAssetOperationUndo || !selectedAssetDetailsId) {
+      return;
+    }
+    const asset = capitalState.assets.find((item) => item.id === selectedAssetDetailsId);
+    if (!asset) {
+      return;
+    }
+    asset.amount = lastAssetOperationUndo.amount;
+    asset.invested = lastAssetOperationUndo.invested;
+    asset.history = (asset.history || []).filter((_, idx, arr) => idx !== arr.length - 1);
+    asset.updatedAt = capitalNowIso();
+    saveCapitalV2(capitalState);
+    lastAssetOperationUndo = null;
+    assetOperationUndo?.classList.add("is-hidden");
+    openAssetDetailsModal(selectedAssetDetailsId);
+    renderCapitalView();
+    showToast("Последнее действие отменено");
+  }, "asset undo action");
+
+  on(assetOperationForm, "submit", (event) => {
+    event.preventDefault();
+    if (!selectedAssetDetailsId) {
+      return;
+    }
+    const asset = capitalState.assets.find((item) => item.id === selectedAssetDetailsId);
+    if (!asset) {
+      return;
+    }
+    if (assetDetailsViewMode !== "edit") {
+      showError("Переключитесь в режим редактирования.");
+      return;
+    }
+    const type = assetOperationType?.value || "note";
+    const amount = assetOperationAmount?.value ? Number.parseFloat(assetOperationAmount.value) : null;
+    const note = assetOperationNote?.value?.trim() || "";
+    if (type !== "note" && (!Number.isFinite(amount) || amount <= 0)) {
+      showError("Для этой операции укажите сумму больше нуля.");
+      return;
+    }
+
+    lastAssetOperationUndo = {
+      amount: sanitizeNumber(asset.amount, 0),
+      invested: sanitizeNumber(asset.invested, 0),
+    };
+
+    if (Number.isFinite(amount)) {
+      if (type === "deposit") {
+        asset.amount = sanitizeNumber(asset.amount, 0) + amount;
+        asset.invested = sanitizeNumber(asset.invested, 0) + amount;
+      } else if (type === "withdraw") {
+        asset.amount = Math.max(0, sanitizeNumber(asset.amount, 0) - amount);
+      } else if (type === "adjust") {
+        asset.amount = amount;
+      }
+      asset.updatedAt = capitalNowIso();
+    }
+
+    asset.history = [
+      ...(asset.history || []),
+      { type, amount: Number.isFinite(amount) ? amount : null, note, ts: capitalNowIso() },
+    ];
+    saveCapitalV2(capitalState);
+    if (assetOperationUndo) {
+      assetOperationUndo.classList.remove("is-hidden");
+    }
+    openAssetDetailsModal(selectedAssetDetailsId);
+    renderCapitalView();
+    renderAssetHistory(asset);
+    if (assetOperationForm) {
+      assetOperationForm.reset();
+    }
+    showToast(type === "note" ? "Запись добавлена" : "Операция применена");
+  }, "asset history add");
+
+  on(assetDetailsEdit, "click", () => {
+    if (!selectedAssetDetailsId) {
+      return;
+    }
+    const asset = capitalState.assets.find((item) => item.id === selectedAssetDetailsId);
+    if (!asset) {
+      return;
+    }
+    setAssetDetailsModal(false);
+    capitalFillAssetForm(asset);
+  }, "asset details edit");
+
+  on(assetDetailsDelete, "click", () => {
+    if (!selectedAssetDetailsId) {
+      return;
+    }
+    const asset = capitalState.assets.find((item) => item.id === selectedAssetDetailsId);
+    if (!asset) {
+      return;
+    }
+    if (!confirm("Удалить актив?")) {
+      return;
+    }
+    capitalState.assets = capitalState.assets.filter((item) => item.id !== selectedAssetDetailsId);
+    saveCapitalV2(capitalState);
+    setAssetDetailsModal(false);
+    selectedAssetDetailsId = null;
+    showToast("Актив удален");
+    renderCapitalView();
+  }, "asset details delete");
 
   on(capitalDebtForm, "submit", (event) => {
     event.preventDefault();
@@ -4031,7 +5321,7 @@ onAll(capitalTabs, "click", (event) => {
 
   on(capitalDebtsTable, "click", (event) => {
     const target = event.target;
-    if (!(target instanceof HTMLButtonElement)) {
+    if (!(target instanceof HTMLButtonElement) && !(target instanceof HTMLInputElement)) {
       return;
     }
     const id = target.dataset.debtDelete;
@@ -4054,7 +5344,7 @@ onAll(capitalTabs, "click", (event) => {
 
   on(capitalGoalsTable, "click", (event) => {
     const target = event.target;
-    if (!(target instanceof HTMLButtonElement)) {
+    if (!(target instanceof HTMLButtonElement) && !(target instanceof HTMLInputElement)) {
       return;
     }
     const id = target.dataset.goalDelete;
@@ -4084,7 +5374,7 @@ onAll(capitalTabs, "click", (event) => {
 
   on(capitalSnapshotsTable, "click", (event) => {
     const target = event.target;
-    if (!(target instanceof HTMLButtonElement)) {
+    if (!(target instanceof HTMLButtonElement) && !(target instanceof HTMLInputElement)) {
       return;
     }
     const month = target.dataset.snapshotDelete;
@@ -4135,6 +5425,9 @@ onAll(capitalTabs, "click", (event) => {
   on(backupButton, "click", () => {
     const payload = buildBackupPayload();
     downloadJson(payload, `budget-backup-${new Date().toISOString().slice(0, 10)}.json`);
+    Storage.set(BACKUP_META_KEY, JSON.stringify({ ts: Date.now() }));
+    renderBackupMeta();
+    showToast("Backup сохранен");
   }, "backup");
 
   on(restoreInput, "change", async (event) => {
@@ -4156,6 +5449,8 @@ onAll(capitalTabs, "click", (event) => {
       capitalSetTab("overview");
       setLayout(currentLayout);
       setView(activeView);
+      showToast("Backup восстановлен");
+      renderBackupMeta();
     } catch (error) {
       showError("Не удалось восстановить backup.");
     } finally {
@@ -4192,8 +5487,13 @@ const initializeApp = safeExec(async () => {
   await Storage.init();
   await loadState();
 
+  ensureFloatingTransactionEditModal();
+  ensureFloatingAssetDetailsModal();
   bindEvents();
   renderCategories();
+  renderCapitalCategoryHints();
+  renderCapitalSubcategoryOptions();
+  await renderBackupMeta();
   resetForm();
   initializeReportRange();
   updateUndoState();
