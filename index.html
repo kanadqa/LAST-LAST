@@ -595,75 +595,75 @@
 
           <div id="assetDetailsOverlay" class="capital-asset-overlay"></div>
           <section id="assetDetailsModal" class="asset-fullscreen-modal" aria-hidden="true">
-            <header class="asset-workspace-header">
-              <div class="asset-workspace-titlebox">
-                <p class="asset-workspace-kicker">Детали актива</p>
+            <header class="asset-shell-top">
+              <div class="asset-shell-title">
                 <h2 id="assetDetailsTitle">Детали актива</h2>
                 <p id="assetDetailsMeta" class="hint"></p>
               </div>
               <button id="assetDetailsClose" type="button" class="button secondary">Закрыть</button>
             </header>
 
-            <div class="asset-workspace-body">
-              <main class="asset-workspace-main">
-                <section class="asset-kpi-grid">
-                  <article class="asset-kpi-card">
+            <div class="asset-shell-grid">
+              <aside class="asset-shell-side card">
+                <h3>Сводка</h3>
+                <div class="asset-side-kpis">
+                  <article class="asset-side-kpi">
                     <span>Сейчас</span>
                     <strong id="assetDetailsCurrent">—</strong>
                   </article>
-                  <article class="asset-kpi-card">
+                  <article class="asset-side-kpi">
                     <span>Вложено</span>
                     <strong id="assetDetailsInvested">—</strong>
                   </article>
-                  <article class="asset-kpi-card">
+                  <article class="asset-side-kpi">
                     <span>Прибыль</span>
                     <strong id="assetDetailsProfit">—</strong>
                   </article>
-                </section>
-
-                <section class="asset-history-shell card">
-                  <div class="asset-section-head">
-                    <h3>История операций</h3>
-                    <p class="hint">События актива: изменения, пополнения, списания и заметки.</p>
-                  </div>
-                  <div id="assetDetailsHistory" class="asset-history"></div>
-                </section>
-              </main>
-
-              <aside class="asset-workspace-side card">
-                <div class="asset-section-head">
-                  <h3>Новое действие</h3>
-                  <p class="hint">Зафиксируйте изменение по активу.</p>
                 </div>
-
-                <form id="assetOperationForm" class="form compact-form asset-operation-form">
-                  <div class="asset-operation-grid">
-                    <label>
-                      Тип
-                      <select id="assetOperationType">
-                        <option value="deposit">Пополнение</option>
-                        <option value="withdraw">Списание</option>
-                        <option value="adjust">Корректировка суммы</option>
-                        <option value="note">Заметка</option>
-                      </select>
-                    </label>
-                    <label>
-                      Сумма
-                      <input id="assetOperationAmount" type="number" step="0.01" min="0" placeholder="Для заметки можно не заполнять" />
-                    </label>
-                    <label class="full">
-                      Комментарий
-                      <input id="assetOperationNote" type="text" placeholder="Например: пополнение с зарплаты" />
-                    </label>
-                  </div>
-                  <button type="submit" class="button primary">Добавить операцию</button>
-                </form>
-
                 <div class="asset-modal-actions">
                   <button id="assetDetailsEdit" type="button" class="button secondary">Редактировать актив</button>
                   <button id="assetDetailsDelete" type="button" class="button danger">Удалить актив</button>
                 </div>
               </aside>
+
+              <main class="asset-shell-main">
+                <section class="card asset-composer-card">
+                  <div class="asset-section-head">
+                    <h3>Новое действие</h3>
+                    <p class="hint">Добавьте операцию или заметку по активу.</p>
+                  </div>
+                  <form id="assetOperationForm" class="form compact-form asset-composer-form">
+                    <div class="asset-composer-grid">
+                      <label>
+                        Тип
+                        <select id="assetOperationType">
+                          <option value="deposit">Пополнение</option>
+                          <option value="withdraw">Списание</option>
+                          <option value="adjust">Корректировка суммы</option>
+                          <option value="note">Заметка</option>
+                        </select>
+                      </label>
+                      <label>
+                        Сумма
+                        <input id="assetOperationAmount" type="number" step="0.01" min="0" placeholder="Необязательно для заметки" />
+                      </label>
+                      <label>
+                        Комментарий
+                        <input id="assetOperationNote" type="text" placeholder="Например: пополнение с зарплаты" />
+                      </label>
+                      <button type="submit" class="button primary">Добавить операцию</button>
+                    </div>
+                  </form>
+                </section>
+
+                <section class="card asset-history-panel">
+                  <div class="asset-section-head">
+                    <h3>История</h3>
+                    <p class="hint">Последние изменения и операции.</p>
+                  </div>
+                  <div id="assetDetailsHistory" class="asset-history"></div>
+                </section>
+              </main>
             </div>
           </section>
 
