@@ -1843,20 +1843,35 @@ const getProfitMeta = (amount, invested) => {
   return { profit, percent: isValid ? percent : null, needsCheck: !isValid };
 };
 
-const capitalFxEndpoint = "https://api.exchangerate.host";
+const capitalFxEndpoint = "https://api.frankfurter.app";
+const capitalFxFallbackEndpoint = "https://open.er-api.com/v6";
 
 const capitalFetchRate = async (base, currency) => {
-  const url = `${capitalFxEndpoint}/latest?base=${encodeURIComponent(base)}&symbols=${encodeURIComponent(currency)}`;
-  const response = await fetch(url);
-  if (!response.ok) {
-    throw new Error("FX fetch failed");
+  const from = encodeURIComponent(base);
+  const to = encodeURIComponent(currency);
+  const providers = [
+    `${capitalFxEndpoint}/latest?from=${from}&to=${to}`,
+    `${capitalFxFallbackEndpoint}/latest/${from}`,
+  ];
+
+  let lastError = null;
+  for (const url of providers) {
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`FX fetch failed: ${response.status}`);
+      }
+      const data = await response.json();
+      const rate = data?.rates?.[currency];
+      if (typeof rate === "number" && Number.isFinite(rate) && rate > 0) {
+        return rate;
+      }
+      throw new Error("No rate");
+    } catch (error) {
+      lastError = error;
+    }
   }
-  const data = await response.json();
-  const rate = data?.rates?.[currency];
-  if (!rate) {
-    throw new Error("No rate");
-  }
-  return rate;
+  throw lastError || new Error("FX fetch failed");
 };
 
 const capitalFetchSeries = async (base, currency) => {
@@ -1865,7 +1880,7 @@ const capitalFetchSeries = async (base, currency) => {
   start.setDate(end.getDate() - 29);
   const startDate = start.toISOString().slice(0, 10);
   const endDate = end.toISOString().slice(0, 10);
-  const url = `${capitalFxEndpoint}/timeseries?base=${encodeURIComponent(base)}&symbols=${encodeURIComponent(currency)}&start_date=${startDate}&end_date=${endDate}`;
+  const url = `${capitalFxEndpoint}/${startDate}..${endDate}?from=${encodeURIComponent(base)}&to=${encodeURIComponent(currency)}`;
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error("FX series fetch failed");
@@ -1963,7 +1978,7 @@ const ensureFxRateForCurrency = async (currency) => {
 const refreshFxRatesForUsedCurrencies = async (force = false) => {
   const base = capitalState?.settings?.baseCurrency || "RUB";
   const now = Date.now();
-  if (!force && now - lastFxAutoUpdateAt < 10 * 60 * 1000) {
+  if (!force && now - lastFxAutoUpdateAt < 2 * 60 * 1000) {
     return;
   }
   const currencies = new Set([
@@ -1977,6 +1992,7 @@ const refreshFxRatesForUsedCurrencies = async (force = false) => {
     return;
   }
   let changed = false;
+  let successCount = 0;
   await Promise.all([...currencies].map(async (currency) => {
     try {
       const rate = await capitalFetchRate(base, currency);
@@ -1984,11 +2000,16 @@ const refreshFxRatesForUsedCurrencies = async (force = false) => {
         capitalState.settings.fxRates[currency] = rate;
         changed = true;
       }
+      if (rate) {
+        successCount += 1;
+      }
     } catch (_error) {
       // leave previous value; UI can fallback to buyRate
     }
   }));
-  lastFxAutoUpdateAt = now;
+  if (successCount > 0) {
+    lastFxAutoUpdateAt = now;
+  }
   if (changed) {
     saveCapitalV2(capitalState);
     renderCapitalView();
@@ -3499,7 +3520,7 @@ const renderCapitalView = () => {
     capitalFxRateValue.textContent = rate ? rate.toFixed(4) : "—";
   }
   renderCapitalCategories();
-  refreshFxRatesForUsedCurrencies();
+  refreshFxRatesForUsedCurrencies(true);
 };
 
 const capitalSetTab = (tabId) => {
