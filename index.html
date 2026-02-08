@@ -44,15 +44,22 @@
           <h2 id="viewTitle">Обзор</h2>
           <p class="subtitle">Быстрый учет финансов с диаграммами и категориями.</p>
         </div>
-        <div class="actions">
+        <div class="actions topbar-actions">
           <button id="undoAction" class="button secondary">Отменить</button>
-          <button id="exportCsv" class="button secondary">Экспорт CSV</button>
-          <button id="backupJson" class="button secondary">Backup JSON</button>
-          <label class="button secondary">
-            Восстановить JSON
-            <input id="restoreJson" type="file" accept="application/json" hidden />
-          </label>
-          <button id="clearAll" class="button danger">Очистить все</button>
+          <div class="topbar-actions-secondary">
+            <button id="exportCsv" class="button secondary">Экспорт CSV</button>
+            <button id="backupJson" class="button secondary">Backup JSON</button>
+            <label class="button secondary">
+              Восстановить JSON
+              <input id="restoreJson" type="file" accept="application/json" hidden />
+            </label>
+          </div>
+          <details class="topbar-more">
+            <summary class="button secondary">Еще</summary>
+            <div class="topbar-more-menu">
+              <button id="clearAll" class="button danger">Очистить все</button>
+            </div>
+          </details>
         </div>
       </header>
 
@@ -75,43 +82,18 @@
           </section>
 
           <section class="card">
-            <h2>Диаграммы</h2>
-            <div class="charts">
-              <div class="chart-card">
-                <h3>Доходы по подкатегориям</h3>
-                <div id="incomeSubcategoryChart" class="chart"></div>
-              </div>
-              <div class="chart-card">
-                <div class="chart-title">
-                  <h3>Расходы по категориям</h3>
-                  <button id="toggleExpenseCategoryChart" class="chip">Показать все</button>
-                </div>
-                <div id="expenseCategoryChart" class="chart chart-scroll"></div>
-              </div>
-              <div class="chart-card">
-                <div class="chart-title">
-                  <h3>Подкатегории (расходы)</h3>
-                  <button id="toggleSubcategoryChart" class="chip">Показать все</button>
-                </div>
-                <div id="expenseSubcategoryChart" class="chart chart-scroll"></div>
-              </div>
+            <div class="chart-title">
+              <h2>Круговые диаграммы</h2>
+              <button id="toggleExpenseSubcategoryPie" class="chip">Подробнее</button>
             </div>
-          </section>
-
-          <section class="card">
-            <h2>Круговые диаграммы</h2>
             <div class="charts">
               <div class="chart-card">
                 <h3>Структура расходов по категориям</h3>
                 <div id="expensePie" class="chart"></div>
               </div>
-              <div class="chart-card">
+              <div id="expenseSubcategoryPiePanel" class="chart-card is-hidden">
                 <h3>Структура расходов по подкатегориям</h3>
                 <div id="expenseSubcategoryPie" class="chart"></div>
-              </div>
-              <div class="chart-card">
-                <h3>Структура доходов по подкатегориям</h3>
-                <div id="incomePie" class="chart"></div>
               </div>
             </div>
           </section>
@@ -154,10 +136,24 @@
 
           <section class="card">
             <h2>История операций</h2>
+            <div class="transaction-filters">
+              <input id="transactionSearch" type="search" placeholder="Поиск: комментарий, категория, сумма" />
+              <select id="transactionTypeFilter">
+                <option value="all">Все типы</option>
+                <option value="income">Доходы</option>
+                <option value="expense">Расходы</option>
+              </select>
+              <select id="transactionCategoryFilter">
+                <option value="all">Все категории</option>
+              </select>
+              <button id="selectAllTransactions" type="button" class="button secondary">Выбрать все</button>
+              <button id="deleteSelectedTransactions" type="button" class="button danger">Удалить выбранные</button>
+            </div>
             <div class="table-wrapper">
               <table>
                 <thead>
                   <tr>
+                    <th></th>
                     <th>Дата</th>
                     <th>Тип</th>
                     <th>Категория</th>
@@ -171,6 +167,9 @@
               </table>
             </div>
             <p class="hint">Данные сохраняются в локальном хранилище браузера. Для переноса используйте экспорт CSV.</p>
+            <div class="backup-center">
+              <strong>Центр данных:</strong> <span id="lastBackupAt">Последний backup: —</span>
+            </div>
           </section>
         </section>
 
@@ -212,20 +211,25 @@
               </div>
 
               <div class="category-panel" data-category-panel="capital">
-                <h3>Категории активов</h3>
-                <p class="hint">Категории и подкатегории капитала задаются вручную.</p>
-                <form id="capitalCategoryForm" class="form compact-form">
+                <h3>Добавить категорию или подкатегорию</h3>
+                <div class="form two-columns">
                   <label>
                     Категория
-                    <input type="text" id="capitalCategoryName" placeholder="Например, Вклад" required />
+                    <input type="text" id="capitalCategoryName" placeholder="Например, Вклад" list="capitalCategoryList" required />
+                    <datalist id="capitalCategoryList"></datalist>
                   </label>
                   <label>
-                    Подкатегория
-                    <input type="text" id="capitalSubcategoryName" placeholder="Например, Сбербанк" />
+                    Тип категории
+                    <input type="text" value="Капитал" disabled />
                   </label>
-                  <button type="submit" class="button secondary">Добавить</button>
-                </form>
-                <div id="capitalCategoryManager" class="capital-category-list"></div>
+                  <label>
+                    Подкатегория (опционально)
+                    <input type="text" id="capitalSubcategoryName" placeholder="Например, Сбербанк" list="capitalSubcategoryList" />
+                    <datalist id="capitalSubcategoryList"></datalist>
+                  </label>
+                  <button id="addCapitalCategory" class="button secondary" type="button">Добавить</button>
+                </div>
+                <p class="hint">Если категория уже существует, будет добавлена подкатегория.</p>
               </div>
             </div>
           </section>
@@ -247,6 +251,19 @@
             </div>
             <div id="categoryManager" class="category-manager"></div>
           </section>
+
+          <section class="card category-panel" data-category-panel="capital">
+            <div class="category-header">
+              <div>
+                <h2>Управление категориями капитала</h2>
+                <p class="hint">Перетаскивайте подкатегории и категории между карточками.</p>
+              </div>
+            </div>
+            <div id="capitalCategoryDropzone" class="category-dropzone">
+              Категории верхнего уровня
+            </div>
+            <div id="capitalCategoryManager" class="category-manager"></div>
+          </section>
         </section>
 
         <section class="view" data-view="reports">
@@ -260,10 +277,19 @@
                 <button class="chip is-active" data-report-range="30">30 дней</button>
                 <button class="chip" data-report-range="7">7 дней</button>
                 <button class="chip" data-report-range="90">90 дней</button>
+                <button class="chip" data-report-range="this-month">Этот месяц</button>
+                <button class="chip" data-report-range="prev-month">Прошлый месяц</button>
+                <button class="chip" data-report-range="365">12 месяцев</button>
                 <button class="chip" data-report-range="all">Все время</button>
               </div>
             </div>
             <div class="report-range">
+              <label>
+                Месяц
+                <select id="reportMonthSelect">
+                  <option value="">Выбрать месяц</option>
+                </select>
+              </label>
               <label>
                 С
                 <input type="date" id="reportStart" />
@@ -306,6 +332,7 @@
               </div>
               <div class="line-chart">
                 <svg id="reportLineChart" viewBox="0 0 720 260" aria-label="График доходов и расходов"></svg>
+                <div id="reportChartTooltip" class="chart-tooltip is-hidden"></div>
                 <div class="line-legend">
                   <span><i class="legend-dot income"></i>Доходы</span>
                   <span><i class="legend-dot expense"></i>Расходы</span>
@@ -403,53 +430,19 @@
           <section class="capital-tab" data-capital-tab-panel="assets">
             <section class="card capital-grid">
               <div class="capital-card capital-full">
-                <h3>Добавить активы</h3>
-                <p class="hint">Обновляйте курсы и добавляйте активы в одном месте.</p>
-                <div class="capital-add-grid">
-                  <div class="capital-add-panel">
-                    <h4>Курс валюты</h4>
-                    <div class="form compact-form">
-                      <label>
-                        Базовая валюта
-                        <select id="capitalBaseCurrency">
-                          <option value="RUB">RUB</option>
-                          <option value="USD">USD</option>
-                          <option value="EUR">EUR</option>
-                        </select>
-                      </label>
-                      <label>
-                        Валюта для курса
-                        <input type="text" id="capitalFxCurrency" placeholder="USD" maxlength="3" />
-                      </label>
-                      <button id="capitalFxRefresh" class="button secondary" type="button">Обновить курс</button>
-                    </div>
-                    <div class="capital-fx-summary">
-                      <strong id="capitalFxRateValue">—</strong>
-                      <span id="capitalFxUpdated" class="hint"></span>
-                    </div>
-                    <div class="capital-fx-chart">
-                      <svg id="capitalFxChart" viewBox="0 0 360 120" aria-label="График курса валюты"></svg>
-                    </div>
-                    <p id="capitalFxNote" class="hint"></p>
-                  </div>
-                  <div class="capital-add-panel">
-                    <h4>Новый актив</h4>
-                    <p class="hint">Быстро фиксируйте вклад/инвестицию: сколько вложили и сколько сейчас.</p>
-                    <button id="capitalAssetToggle" class="button primary" type="button">Добавить актив</button>
-                  </div>
-                </div>
-              </div>
-
-              <div class="capital-card capital-full">
                 <div class="asset-list-shell">
                   <div class="asset-list-header">
                     <h3>Список активов</h3>
-                    <span id="capitalAssetShown" class="asset-list-count">Показано: 0</span>
+                    <div class="asset-list-actions">
+                      <button id="capitalAssetToggle" class="button primary" type="button">Добавить актив</button>
+                      <span id="capitalAssetShown" class="asset-list-count">Показано: 0</span>
+                    </div>
                   </div>
+
                   <div class="asset-filters">
                     <label class="asset-filter">
                       <span>Поиск</span>
-                      <input id="capitalAssetSearch" type="search" placeholder="Название или комментарий" />
+                      <input id="capitalAssetSearch" type="search" placeholder="Название, владелец или комментарий" />
                     </label>
                     <label class="asset-filter">
                       <span>Тип</span>
@@ -458,6 +451,10 @@
                     <label class="asset-filter">
                       <span>Ликвидность</span>
                       <select id="capitalAssetLiquidityFilter"></select>
+                    </label>
+                    <label class="asset-filter">
+                      <span>Владелец</span>
+                      <select id="capitalAssetOwnerFilter"></select>
                     </label>
                     <label class="asset-filter">
                       <span>Сорт.</span>
@@ -470,6 +467,13 @@
                     </label>
                     <button id="capitalAssetSortDir" class="chip chip-toggle" type="button" aria-pressed="false">По убыв.</button>
                   </div>
+                  <div class="asset-filter-presets">
+                    <button class="chip" type="button" data-owner-preset="Мама">Мама</button>
+                    <button class="chip" type="button" data-owner-preset="Расиль">Расиль</button>
+                    <button class="chip" type="button" data-owner-preset="Элиза">Элиза</button>
+                    <button class="chip" type="button" id="capitalAssetFiltersReset">Сбросить фильтры</button>
+                  </div>
+                  <div id="capitalAssetActiveFilters" class="asset-active-filters"></div>
 
                   <div class="asset-summary">
                     <div class="asset-summary-card">
@@ -503,75 +507,234 @@
                 <button id="capitalAssetClose" type="button" class="button secondary">Закрыть</button>
               </div>
             </div>
-            <form id="capitalAssetForm" class="form capital-form">
+            <form id="capitalAssetForm" class="form capital-form modern-asset-form">
+              <section class="asset-form-section">
+                <h4>Основное</h4>
+                <div class="asset-form-grid">
+                  <label class="full">
+                    Название
+                    <input type="text" id="capitalAssetName" placeholder="Например, Фондовый рынок — Мама" required />
+                  </label>
+                  <label>
+                    Владелец
+                    <input type="text" id="capitalAssetOwner" placeholder="Например, Мама" />
+                  </label>
+                  <label>
+                    Категория
+                    <select id="capitalAssetType">
+                      <option value="cash">Наличные</option>
+                      <option value="bank">Банк</option>
+                      <option value="deposit">Вклад</option>
+                      <option value="investment">Инвестиции</option>
+                      <option value="real_estate">Недвижимость</option>
+                      <option value="other">Другое</option>
+                    </select>
+                  </label>
+                  <label>
+                    Подкатегория
+                    <select id="capitalAssetSubcategory"></select>
+                  </label>
+                  <label>
+                    Валюта
+                    <select id="capitalAssetCurrency">
+                      <option value="RUB">RUB</option>
+                      <option value="USD">USD</option>
+                      <option value="EUR">EUR</option>
+                      <option value="CNY">CNY</option>
+                    </select>
+                  </label>
+                  <label>
+                    Ликвидность
+                    <select id="capitalAssetLiquidity">
+                      <option value="high">Можно вывести сразу</option>
+                      <option value="medium">Нужно 1–3 дня</option>
+                      <option value="low">Сложно/долго вывести</option>
+                      <option value="locked">Заблокировано до даты</option>
+                    </select>
+                  </label>
+                </div>
+              </section>
+
+              <section class="asset-form-section">
+                <h4>Суммы и доходность</h4>
+                <div class="asset-form-grid">
+                  <label>
+                    Сумма (опционально)
+                    <input type="number" id="capitalAssetAmount" min="0" step="0.01" />
+                  </label>
+                  <label>
+                    Вложено
+                    <input type="number" id="capitalAssetInvested" min="0" step="0.01" required />
+                  </label>
+                  <label>
+                    Ожидаемая прибыль
+                    <input type="number" id="capitalAssetExpectedProfit" min="0" step="0.01" />
+                  </label>
+                  <label>
+                    Дата окончания вклада
+                    <input type="date" id="capitalAssetMaturityDate" />
+                  </label>
+                </div>
+              </section>
+
+              <section class="asset-form-section">
+                <h4>Комментарий</h4>
+                <div class="asset-form-grid">
+                  <label class="full">
+                    Заметка
+                    <input type="text" id="capitalAssetNote" placeholder="Опционально" />
+                  </label>
+                </div>
+              </section>
+
+              <div class="asset-form-footer">
+                <button type="submit" class="button primary">Добавить актив</button>
+              </div>
+            </form>
+          </div>
+
+          <div id="assetDetailsOverlay" class="capital-asset-overlay"></div>
+          <section id="assetDetailsModal" class="asset-fullscreen-modal" aria-hidden="true">
+            <header class="asset-shell-top">
+              <div class="asset-shell-head-actions">
+                <button id="assetDetailsPrev" type="button" class="chip">← Пред.</button>
+                <button id="assetDetailsNext" type="button" class="chip">След. →</button>
+              </div>
+              <div class="asset-shell-title">
+                <h2 id="assetDetailsTitle">Детали актива</h2>
+                <p id="assetDetailsMeta" class="hint"></p>
+              </div>
+              <div class="asset-shell-top-right">
+                <button id="assetDetailsMode" type="button" class="button secondary">Режим: просмотр</button>
+                <button id="assetDetailsClose" type="button" class="button secondary">Закрыть</button>
+              </div>
+            </header>
+
+            <div class="asset-shell-grid">
+              <aside class="asset-shell-side card">
+                <h3>Сводка</h3>
+                <div class="asset-side-kpis">
+                  <article class="asset-side-kpi">
+                    <span>Сейчас</span>
+                    <strong id="assetDetailsCurrent">—</strong>
+                  </article>
+                  <article class="asset-side-kpi">
+                    <span>Вложено</span>
+                    <strong id="assetDetailsInvested">—</strong>
+                  </article>
+                  <article class="asset-side-kpi">
+                    <span>Прибыль</span>
+                    <strong id="assetDetailsProfit">—</strong>
+                  </article>
+                </div>
+                <div class="asset-modal-actions">
+                  <button id="assetDetailsEdit" type="button" class="button secondary">Редактировать актив</button>
+                  <button id="assetDetailsDelete" type="button" class="button danger">Удалить актив</button>
+                </div>
+              </aside>
+
+              <main class="asset-shell-main">
+                <section class="card asset-composer-card">
+                  <div class="asset-section-head">
+                    <h3>Новое действие</h3>
+                    <p class="hint">Быстрые действия по активу.</p>
+                  </div>
+                  <div class="asset-op-templates">
+                    <button class="chip" type="button" data-asset-template="salary">Пополнение: зарплата</button>
+                    <button class="chip" type="button" data-asset-template="rebalance">Корректировка: ребаланс</button>
+                    <button class="chip" type="button" data-asset-template="note-month">Заметка: итог месяца</button>
+                  </div>
+                  <form id="assetOperationForm" class="form compact-form asset-composer-form">
+                    <div class="asset-composer-grid">
+                      <label>
+                        Тип
+                        <select id="assetOperationType">
+                          <option value="deposit">Пополнение</option>
+                          <option value="withdraw">Списание</option>
+                          <option value="adjust">Корректировка суммы</option>
+                          <option value="note">Заметка</option>
+                        </select>
+                      </label>
+                      <label>
+                        Сумма
+                        <input id="assetOperationAmount" type="number" step="0.01" min="0" placeholder="Необязательно для заметки" />
+                      </label>
+                      <label>
+                        Комментарий
+                        <input id="assetOperationNote" type="text" placeholder="Например: пополнение с зарплаты" />
+                      </label>
+                      <div class="asset-op-actions">
+                        <button type="submit" class="button primary">Добавить операцию</button>
+                        <button id="assetOperationUndo" type="button" class="button secondary is-hidden">Отменить последнее действие</button>
+                      </div>
+                    </div>
+                  </form>
+                </section>
+
+                <section class="card asset-history-panel">
+                  <div class="asset-section-head">
+                    <h3>История</h3>
+                    <p class="hint">Последние изменения и операции.</p>
+                  </div>
+                  <div id="assetDetailsHistory" class="asset-history"></div>
+                </section>
+              </main>
+            </div>
+          </section>
+
+
+          <div id="transactionEditOverlay" class="capital-asset-overlay"></div>
+          <div id="transactionEditModal" class="transaction-edit-modal" aria-hidden="true">
+            <div class="transaction-edit-header">
+              <h3>Редактировать операцию</h3>
+              <button id="transactionEditClose" type="button" class="button secondary">Закрыть</button>
+            </div>
+            <form id="transactionEditForm" class="form compact-form">
               <label>
-                Название
-                <input type="text" id="capitalAssetName" placeholder="Например, Сбер вклад" required />
+                Дата
+                <input type="date" id="editDate" required />
+              </label>
+              <label>
+                Тип
+                <select id="editType" required>
+                  <option value="income">Доход</option>
+                  <option value="expense">Расход</option>
+                </select>
               </label>
               <label>
                 Категория
-                <select id="capitalAssetType">
-                  <option value="cash">Наличные</option>
-                  <option value="bank">Банк</option>
-                  <option value="deposit">Вклад</option>
-                  <option value="investment">Инвестиции</option>
-                  <option value="real_estate">Недвижимость</option>
-                  <option value="other">Другое</option>
-                </select>
+                <input type="text" id="editCategory" required />
               </label>
-              <label>
-                Иконка
-                <input type="text" id="capitalAssetIcon" placeholder="Например, 🏦" maxlength="2" />
-              </label>
-              <label>
-                Фото
-                <input type="file" id="capitalAssetAvatar" accept="image/*" />
-              </label>
-              <button id="capitalAssetAvatarRemove" type="button" class="button secondary small">Удалить фото</button>
               <label>
                 Подкатегория
-                <input type="text" id="capitalAssetSubcategory" list="capitalSubcategoryList" placeholder="Например, Сбербанк" />
-                <datalist id="capitalSubcategoryList"></datalist>
+                <input type="text" id="editSubcategory" />
               </label>
               <label>
-                Валюта
-                <select id="capitalAssetCurrency">
-                  <option value="RUB">RUB</option>
-                  <option value="USD">USD</option>
-                  <option value="EUR">EUR</option>
-                  <option value="CNY">CNY</option>
-                </select>
-              </label>
-              <label>
-                Сумма (опционально)
-                <input type="number" id="capitalAssetAmount" min="0" step="0.01" />
-              </label>
-              <label>
-                Вложено
-                <input type="number" id="capitalAssetInvested" min="0" step="0.01" required />
-              </label>
-              <label>
-                Дата окончания вклада
-                <input type="date" id="capitalAssetMaturityDate" />
-              </label>
-              <label>
-                Ликвидность
-                <select id="capitalAssetLiquidity">
-                  <option value="high">Можно вывести сразу</option>
-                  <option value="medium">Нужно 1–3 дня</option>
-                  <option value="low">Сложно/долго вывести</option>
-                  <option value="locked">Заблокировано до даты</option>
-                </select>
-              </label>
-              <label>
-                Ожидаемая прибыль
-                <input type="number" id="capitalAssetExpectedProfit" min="0" step="0.01" />
+                Сумма
+                <input type="number" id="editAmount" min="0" step="0.01" required />
               </label>
               <label class="full">
                 Комментарий
-                <input type="text" id="capitalAssetNote" placeholder="Опционально" />
+                <input type="text" id="editNote" />
               </label>
-              <button type="submit" class="button primary">Добавить актив</button>
+              <button type="submit" class="button primary">Сохранить изменения</button>
+            </form>
+          </div>
+
+          <div id="capitalCategoryModalOverlay" class="capital-asset-overlay"></div>
+          <div id="capitalCategoryModal" class="transaction-edit-modal" aria-hidden="true">
+            <div class="transaction-edit-header">
+              <h3 id="capitalCategoryModalTitle">Изменение категории</h3>
+              <button id="capitalCategoryModalClose" type="button" class="button secondary">Закрыть</button>
+            </div>
+            <form id="capitalCategoryModalForm" class="form compact-form">
+              <label>
+                Новое значение
+                <input type="text" id="capitalCategoryModalInput" />
+              </label>
+              <div class="asset-form-footer">
+                <button type="submit" id="capitalCategoryModalSubmit" class="button primary">Сохранить</button>
+              </div>
             </form>
           </div>
 
