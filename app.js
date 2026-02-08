@@ -1807,23 +1807,32 @@ const capitalToBase = (value, currency) => {
   return value * rate;
 };
 
-const assetValueInBase = (asset, field) => {
-  const value = field === "invested" ? (asset.invested ?? asset.amount ?? 0) : asset.amount;
-  const converted = capitalToBase(value, asset.currency);
-  if (converted != null) {
-    return converted;
+const capitalGetAssetConversionMeta = (asset) => {
+  const baseCurrency = capitalState.settings.baseCurrency;
+  if (!asset || asset.currency === baseCurrency) {
+    return { rate: 1, source: "base" };
   }
-  if (asset.currency === capitalState.settings.baseCurrency) {
-    return value;
-  }
-  if (field === "invested") {
-    return Number.isFinite(value) ? value : null;
+  const fxRate = sanitizeNumber(capitalState.settings.fxRates?.[asset.currency], 0);
+  if (fxRate > 0) {
+    return { rate: fxRate, source: "fx" };
   }
   const buyRate = sanitizeNumber(asset.buyRate, 0);
   if (buyRate > 0) {
-    return sanitizeNumber(value, 0) * buyRate;
+    return { rate: buyRate, source: "buyRate" };
   }
-  return null;
+  return { rate: null, source: "none" };
+};
+
+const assetValueInBase = (asset, field) => {
+  const value = field === "invested" ? (asset.invested ?? asset.amount ?? 0) : asset.amount;
+  if (asset.currency === capitalState.settings.baseCurrency) {
+    return value;
+  }
+  const conversion = capitalGetAssetConversionMeta(asset);
+  if (conversion.rate == null) {
+    return null;
+  }
+  return sanitizeNumber(value, 0) * conversion.rate;
 };
 
 const getProfitMeta = (amount, invested) => {
@@ -3079,6 +3088,7 @@ const renderCapitalAssets = () => {
       assets.forEach((asset) => {
         const amountBase = assetValueInBase(asset, "amount");
         const investedBase = assetValueInBase(asset, "invested");
+        const conversionMeta = capitalGetAssetConversionMeta(asset);
         const hasRate = amountBase != null && investedBase != null;
         const amountLabel = amountBase == null
           ? `нет курса для ${asset.currency}`
@@ -3086,6 +3096,9 @@ const renderCapitalAssets = () => {
         const investedLabel = investedBase == null
           ? `нет курса`
           : capitalFormatMoney(investedBase);
+        const investedNativeHint = asset.currency === capitalState.settings.baseCurrency
+          ? ""
+          : ` (${sanitizeNumber(asset.invested ?? asset.amount, 0).toFixed(2)} ${asset.currency})`;
         const profitMeta = getProfitMeta(amountBase ?? 0, investedBase ?? 0);
         const profitLabel = amountBase == null || investedBase == null
           ? "—"
@@ -3098,7 +3111,10 @@ const renderCapitalAssets = () => {
         const avatarMarkup = asset.avatarDataUrl
           ? `<img src="${asset.avatarDataUrl}" alt="" />`
           : `<span>${iconValue || iconLetter}</span>`;
-        const missingRateChip = hasRate ? "" : `<span class='chip chip-missing'>нет курса${asset.buyRate ? " · курс покупки" : ""}</span>`;
+        const rateSourceChip = conversionMeta.source === "buyRate"
+          ? "<span class='chip chip-warning'>оценка по курсу покупки</span>"
+          : "";
+        const missingRateChip = hasRate ? "" : "<span class='chip chip-missing'>нет текущего курса</span>";
 
         const card = document.createElement("div");
         card.className = "asset-item";
@@ -3118,7 +3134,7 @@ const renderCapitalAssets = () => {
                 <strong class="asset-amount">${amountLabel}</strong>
               </div>
               <div class="asset-secondary-rows">
-                <span class="asset-secondary-row"><span>Вложено</span><strong>${investedLabel}</strong></span>
+                <span class="asset-secondary-row"><span>Вложено${investedNativeHint}</span><strong>${investedLabel}</strong></span>
                 <span class="asset-secondary-row"><span>Прибыль</span><strong class="asset-profit ${profitMeta.profit < 0 ? "is-negative" : ""}">${profitLabel}</strong></span>
               </div>
               <span class="asset-profit-percent ${showPercentWarning ? "is-warning" : ""}">${percentLabel}</span>
@@ -3126,6 +3142,7 @@ const renderCapitalAssets = () => {
             <div class="asset-tile-bottom">
               <span class="chip chip-liquidity">${liquidityLabel}</span>
               ${missingRateChip}
+              ${rateSourceChip}
               ${showPercentWarning ? "<span class='chip chip-warning'>проверь данные</span>" : ""}
               <span class="asset-toggle-label">Подробнее</span>
             </div>
@@ -3632,7 +3649,9 @@ const openAssetDetailsModal = (assetId) => {
     assetDetailsTitle.textContent = asset.name || "Детали актива";
   }
   if (assetDetailsMeta) {
-    assetDetailsMeta.textContent = `${capitalTypeLabel(asset.type)} • ${asset.currency} • ${asset.subcategory || "Без подкатегории"}${asset.owner ? ` • ${asset.owner}` : ""}`;
+    const conversionMeta = capitalGetAssetConversionMeta(asset);
+    const sourceSuffix = conversionMeta.source === "buyRate" ? " • оценка по курсу покупки" : "";
+    assetDetailsMeta.textContent = `${capitalTypeLabel(asset.type)} • ${asset.currency} • ${asset.subcategory || "Без подкатегории"}${asset.owner ? ` • ${asset.owner}` : ""}${sourceSuffix}`;
   }
   if (assetDetailsCurrent) {
     assetDetailsCurrent.textContent = amountBase == null ? `нет курса для ${asset.currency}` : capitalFormatMoney(amountBase);
