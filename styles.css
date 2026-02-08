@@ -3063,8 +3063,7 @@ table tbody tr:hover {
 
 /* Asset details modal v4: radically different split-shell layout */
 #assetDetailsOverlay {
-  background: rgba(15, 23, 42, 0.55);
-  backdrop-filter: blur(4px);
+  background: rgba(15, 23, 42, 0.62);
 }
 
 #assetDetailsModal.asset-fullscreen-modal {
@@ -3073,9 +3072,9 @@ table tbody tr:hover {
   inset: 50% auto auto 50%;
   transform: translate(-50%, -50%);
   border-radius: 20px;
-  border: 1px solid #d4dbe8;
-  background: #f3f6fb;
-  box-shadow: 0 30px 70px rgba(2, 6, 23, 0.4);
+  border: 1px solid #cfd8e6;
+  background: #f6f8fc;
+  box-shadow: 0 34px 76px rgba(2, 6, 23, 0.42);
   padding: 18px;
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
@@ -3111,9 +3110,13 @@ table tbody tr:hover {
 .asset-composer-card,
 .asset-history-panel {
   border-radius: 16px;
-  border: 1px solid #d8dfec;
-  background: #fff;
-  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.06);
+  border: 1px solid #d6dfed;
+  background: #ffffff;
+  box-shadow: 0 10px 24px rgba(15, 23, 42, 0.05);
+}
+
+.asset-composer-card {
+  border-top: 4px solid #2563eb;
 }
 
 .asset-shell-side {
@@ -3141,6 +3144,10 @@ table tbody tr:hover {
   display: grid;
   gap: 4px;
 }
+
+.asset-side-kpi:nth-child(1) { border-left: 3px solid #0ea5e9; }
+.asset-side-kpi:nth-child(2) { border-left: 3px solid #6366f1; }
+.asset-side-kpi:nth-child(3) { border-left: 3px solid #8b5cf6; }
 
 .asset-side-kpi span {
   font-size: 12px;
