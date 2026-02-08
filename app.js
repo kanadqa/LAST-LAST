@@ -1847,8 +1847,9 @@ const capitalFxEndpoint = "https://api.frankfurter.app";
 const capitalFxFallbackEndpoint = "https://open.er-api.com/v6";
 
 const capitalFetchRate = async (base, currency) => {
-  const from = encodeURIComponent(base);
-  const to = encodeURIComponent(currency);
+  // Return: how many `base` units for 1 `currency` unit.
+  const from = encodeURIComponent(currency);
+  const to = encodeURIComponent(base);
   const providers = [
     `${capitalFxEndpoint}/latest?from=${from}&to=${to}`,
     `${capitalFxFallbackEndpoint}/latest/${from}`,
@@ -1862,7 +1863,7 @@ const capitalFetchRate = async (base, currency) => {
         throw new Error(`FX fetch failed: ${response.status}`);
       }
       const data = await response.json();
-      const rate = data?.rates?.[currency];
+      const rate = data?.rates?.[base];
       if (typeof rate === "number" && Number.isFinite(rate) && rate > 0) {
         return rate;
       }
@@ -1880,14 +1881,14 @@ const capitalFetchSeries = async (base, currency) => {
   start.setDate(end.getDate() - 29);
   const startDate = start.toISOString().slice(0, 10);
   const endDate = end.toISOString().slice(0, 10);
-  const url = `${capitalFxEndpoint}/${startDate}..${endDate}?from=${encodeURIComponent(base)}&to=${encodeURIComponent(currency)}`;
+  const url = `${capitalFxEndpoint}/${startDate}..${endDate}?from=${encodeURIComponent(currency)}&to=${encodeURIComponent(base)}`;
   const response = await fetch(url);
   if (!response.ok) {
     throw new Error("FX series fetch failed");
   }
   const data = await response.json();
   const entries = Object.entries(data?.rates || {}).sort(([a], [b]) => a.localeCompare(b));
-  return entries.map(([date, rates]) => ({ date, value: rates[currency] })).filter((item) => item.value);
+  return entries.map(([date, rates]) => ({ date, value: rates[base] })).filter((item) => item.value);
 };
 
 const renderFxChart = (series) => {
