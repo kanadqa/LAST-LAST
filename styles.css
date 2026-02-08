@@ -3360,3 +3360,38 @@ table tbody tr:hover {
     align-items: stretch;
   }
 }
+
+/* Final stability override for asset details sheet (avoid legacy transform collisions) */
+#assetDetailsOverlay {
+  backdrop-filter: none;
+  background: rgba(15, 23, 42, 0.56);
+}
+
+#assetDetailsModal.asset-fullscreen-modal {
+  inset: 0 0 0 auto;
+  width: min(1240px, 92vw);
+  height: 100vh;
+  border-radius: 0;
+  border-left: 1px solid #cfd8e6;
+  border-top: 0;
+  border-right: 0;
+  border-bottom: 0;
+  background: #f6f8fc;
+  box-shadow: -24px 0 48px rgba(2, 6, 23, 0.18);
+  transform: translateX(28px);
+  opacity: 0;
+  pointer-events: none;
+  transition: transform 0.2s ease, opacity 0.2s ease;
+}
+
+#assetDetailsModal.asset-fullscreen-modal.is-open {
+  transform: translateX(0);
+  opacity: 1;
+  pointer-events: auto;
+}
+
+@media (max-width: 1100px) {
+  #assetDetailsModal.asset-fullscreen-modal {
+    width: 100vw;
+  }
+}
