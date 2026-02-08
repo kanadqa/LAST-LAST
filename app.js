@@ -629,6 +629,7 @@ let assetUiState = { groups: {}, subgroups: {} };
 let capitalCategoryModalState = null;
 let assetDetailsViewMode = "view";
 let lastAssetOperationUndo = null;
+let lastFxAutoUpdateAt = 0;
 
 const persistAssetUiState = () => Storage.set(CAPITAL_ASSETS_UI_KEY, JSON.stringify(assetUiState));
 
@@ -1959,6 +1960,41 @@ const ensureFxRateForCurrency = async (currency) => {
   }
 };
 
+const refreshFxRatesForUsedCurrencies = async (force = false) => {
+  const base = capitalState?.settings?.baseCurrency || "RUB";
+  const now = Date.now();
+  if (!force && now - lastFxAutoUpdateAt < 10 * 60 * 1000) {
+    return;
+  }
+  const currencies = new Set([
+    ...(capitalState.assets || []).map((item) => (item.currency || "").trim().toUpperCase()),
+    ...(capitalState.debts || []).map((item) => (item.currency || "").trim().toUpperCase()),
+  ]);
+  currencies.delete("");
+  currencies.delete(base);
+  if (!currencies.size) {
+    lastFxAutoUpdateAt = now;
+    return;
+  }
+  let changed = false;
+  await Promise.all([...currencies].map(async (currency) => {
+    try {
+      const rate = await capitalFetchRate(base, currency);
+      if (rate && capitalState.settings.fxRates[currency] !== rate) {
+        capitalState.settings.fxRates[currency] = rate;
+        changed = true;
+      }
+    } catch (_error) {
+      // leave previous value; UI can fallback to buyRate
+    }
+  }));
+  lastFxAutoUpdateAt = now;
+  if (changed) {
+    saveCapitalV2(capitalState);
+    renderCapitalView();
+  }
+};
+
 const capitalTotals = () => {
   const missingRates = [];
   const assetsTotal = capitalState.assets.reduce((sum, item) => {
@@ -3096,6 +3132,9 @@ const renderCapitalAssets = () => {
         const investedLabel = investedBase == null
           ? `нет курса`
           : capitalFormatMoney(investedBase);
+        const amountNativeHint = asset.currency === capitalState.settings.baseCurrency
+          ? ""
+          : ` (${sanitizeNumber(asset.amount, 0).toFixed(2)} ${asset.currency})`;
         const investedNativeHint = asset.currency === capitalState.settings.baseCurrency
           ? ""
           : ` (${sanitizeNumber(asset.invested ?? asset.amount, 0).toFixed(2)} ${asset.currency})`;
@@ -3130,7 +3169,7 @@ const renderCapitalAssets = () => {
             </div>
             <div class="asset-tile-metrics">
               <div class="asset-primary-row">
-                <span class="asset-label">Сейчас</span>
+                <span class="asset-label">Сейчас${amountNativeHint}</span>
                 <strong class="asset-amount">${amountLabel}</strong>
               </div>
               <div class="asset-secondary-rows">
@@ -3460,6 +3499,7 @@ const renderCapitalView = () => {
     capitalFxRateValue.textContent = rate ? rate.toFixed(4) : "—";
   }
   renderCapitalCategories();
+  refreshFxRatesForUsedCurrencies();
 };
 
 const capitalSetTab = (tabId) => {
