@@ -3425,14 +3425,21 @@ const renderAssetHistory = (asset) => {
   }
   const logs = [...(asset.history || [])].sort((a, b) => String(b.ts || "").localeCompare(String(a.ts || "")));
   if (!logs.length) {
-    assetDetailsHistory.innerHTML = "<p class='hint'>Пока нет записей.</p>";
+    assetDetailsHistory.innerHTML = "<p class='asset-history-empty'>Пока нет записей. Добавьте первое действие справа.</p>";
     return;
   }
   assetDetailsHistory.innerHTML = logs.map((item) => {
     const parsedAmount = Number.parseFloat(String(item.amount));
-    const amountText = Number.isFinite(parsedAmount) ? ` · ${capitalFormatMoney(parsedAmount)}` : "";
-    const note = item.note ? `<span class='hint'>${item.note}</span>` : "";
-    return `<div class='asset-history-item'><strong>${assetOperationLabel(item.type)}</strong><span>${new Date(item.ts).toLocaleString("ru-RU")}${amountText}</span>${note}</div>`;
+    const amountText = Number.isFinite(parsedAmount) ? capitalFormatMoney(parsedAmount) : "—";
+    const note = item.note ? `<span class='asset-history-note'>${item.note}</span>` : "";
+    return `<article class='asset-history-item asset-history-item--${item.type || "note"}'>
+      <div class='asset-history-head'>
+        <strong class='asset-history-item-title'>${assetOperationLabel(item.type)}</strong>
+        <span class='asset-history-item-amount'>${amountText}</span>
+      </div>
+      <span class='asset-history-item-meta'>${new Date(item.ts).toLocaleString("ru-RU")}</span>
+      ${note}
+    </article>`;
   }).join("");
 };
 
