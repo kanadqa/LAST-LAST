@@ -369,8 +369,7 @@
                 </label>
               </div>
               <div class="capital-tabs">
-                <button class="chip is-active" data-capital-tab="overview">Обзор</button>
-                <button class="chip" data-capital-tab="assets">Мой капитал все вместе</button>
+                <button class="chip is-active" data-capital-tab="assets">Мой капитал все вместе</button>
                 <button class="chip" data-capital-tab="debts">Долги</button>
                 <button class="chip" data-capital-tab="goals">Цели</button>
                 <button class="chip" data-capital-tab="history">История</button>
@@ -378,56 +377,7 @@
             </div>
           </section>
 
-          <section class="capital-tab is-active" data-capital-tab-panel="overview">
-            <section class="summary capital-summary">
-              <div class="summary-card income">
-                <span>Активы</span>
-                <strong id="capitalAssetsTotal">0 ₽</strong>
-              </div>
-              <div class="summary-card expense">
-                <span>Долги</span>
-                <strong id="capitalDebtsTotal">0 ₽</strong>
-              </div>
-              <div class="summary-card balance">
-                <span>Чистый капитал</span>
-                <strong id="capitalNetWorth">0 ₽</strong>
-              </div>
-            </section>
-
-            <section class="card capital-grid">
-              <div class="capital-card capital-full">
-                <div class="chart-title">
-                  <h3>Структура активов</h3>
-                  <div class="chip-group">
-                    <button class="chip is-active" data-capital-structure="bars">Список</button>
-                    <button class="chip" data-capital-structure="pie">Круговая</button>
-                  </div>
-                </div>
-                <div id="capitalAssetTypeChart" class="chart"></div>
-                <div id="capitalAssetTypePie" class="chart is-hidden"></div>
-              </div>
-
-              <div class="capital-card capital-full">
-                <div class="chart-title">
-                  <h3>Мой общий капитал</h3>
-                  <div class="chip-group">
-                    <button class="chip is-active" data-capital-filter="all">Все</button>
-                    <button class="chip" data-capital-filter="high">Ликвидные</button>
-                    <button class="chip" data-capital-filter="low">Низколиквидные</button>
-                    <button class="chip" data-capital-filter="locked">Заблокированные</button>
-                  </div>
-                </div>
-                <div id="capitalLedger" class="capital-ledger"></div>
-                <div class="capital-ledger-total">
-                  <span>Факт</span>
-                  <strong id="capitalLedgerTotal">0 ₽</strong>
-                </div>
-                <p id="capitalLedgerNote" class="hint"></p>
-              </div>
-            </section>
-          </section>
-
-          <section class="capital-tab" data-capital-tab-panel="assets">
+          <section class="capital-tab is-active" data-capital-tab-panel="assets">
             <section class="card capital-grid">
               <div class="capital-card capital-full">
                 <div class="asset-list-shell">
@@ -491,11 +441,16 @@
                       <small id="capitalAssetsSummaryPercent" class="asset-summary-percent">—</small>
                       <span id="capitalAssetsSummaryWarning" class="chip chip-warning is-hidden">проверить</span>
                     </div>
+                    <div class="asset-summary-card expected">
+                      <span>Ожидаемый чистый доход</span>
+                      <strong id="capitalAssetsExpectedProfit">0 ₽</strong>
+                    </div>
                     <div class="asset-summary-card net">
                       <span>Реально с учетом долгов</span>
                       <strong id="capitalAssetsNetAfterDebts">0 ₽</strong>
                     </div>
                   </div>
+                  <p id="capitalAssetsRateInfo" class="hint asset-rate-info">Курс для валютных активов: —</p>
 
                   <div id="capitalAssetsList" class="asset-groups"></div>
                   <div id="capitalAssetsCategoryReport" class="asset-category-report"></div>
@@ -641,6 +596,7 @@
                 </div>
                 <div class="asset-modal-actions">
                   <button id="assetDetailsEdit" type="button" class="button secondary">Редактировать актив</button>
+                  <button id="assetDetailsArchive" type="button" class="button secondary">Закрыть актив</button>
                   <button id="assetDetailsDelete" type="button" class="button danger">Удалить актив</button>
                 </div>
               </aside>
@@ -755,7 +711,7 @@
 
           <div id="toast" class="toast is-hidden" role="status" aria-live="polite"></div>
 
-          <section class="capital-tab" data-capital-tab-panel="debts">
+          <section class="capital-tab capital-tab-debts" data-capital-tab-panel="debts">
             <section class="summary capital-summary">
               <div class="summary-card neutral">
                 <span>Средняя ставка</span>
@@ -773,7 +729,7 @@
 
             <section class="card capital-grid">
               <div class="capital-card">
-                <h3>Добавить долг</h3>
+                <h3>Долги — новый план</h3>
                 <form id="capitalDebtForm" class="form">
                   <label>
                     Название
@@ -818,7 +774,7 @@
               </div>
 
               <div class="capital-card">
-                <h3>План выплат</h3>
+                <h3>План погашения</h3>
                 <div class="form compact-form">
                   <label>
                     Дополнительный платеж в месяц
@@ -844,7 +800,7 @@
 
             <section class="card capital-grid">
               <div class="capital-card">
-                <h3>Список долгов</h3>
+                <h3>Управление долгами</h3>
                 <div class="table-wrapper">
                   <table class="capital-table">
                     <thead>
@@ -867,10 +823,10 @@
             </section>
           </section>
 
-          <section class="capital-tab" data-capital-tab-panel="goals">
+          <section class="capital-tab capital-tab-goals" data-capital-tab-panel="goals">
             <section class="card capital-grid">
               <div class="capital-card">
-                <h3>Добавить цель</h3>
+                <h3>Новая цель</h3>
                 <form id="capitalGoalForm" class="form">
                   <label>
                     Название
@@ -906,7 +862,7 @@
               </div>
 
               <div class="capital-card">
-                <h3>Мои цели</h3>
+                <h3>Прогресс целей</h3>
                 <div class="table-wrapper">
                   <table class="capital-table">
                     <thead>
@@ -925,11 +881,11 @@
             </section>
           </section>
 
-          <section class="capital-tab" data-capital-tab-panel="history">
+          <section class="capital-tab capital-tab-history" data-capital-tab-panel="history">
             <section class="card capital-grid">
               <div class="capital-card">
                 <div class="chart-title">
-                  <h3>Снимки капитала</h3>
+                  <h3>История капитала</h3>
                   <button id="capitalSnapshotNow" class="chip">Создать снимок месяца</button>
                 </div>
                 <div class="line-chart">

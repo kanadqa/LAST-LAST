@@ -3526,3 +3526,80 @@ table tbody tr:hover {
     grid-template-columns: 1fr;
   }
 }
+
+.asset-rate-info {
+  margin: 8px 2px 14px;
+  font-size: 13px;
+}
+
+.asset-summary {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+}
+
+.asset-summary-card.expected {
+  border-left: 4px solid #0ea5e9;
+  background: linear-gradient(180deg, #eff6ff, #ffffff);
+}
+
+.capital-tab-debts .capital-card,
+.capital-tab-goals .capital-card,
+.capital-tab-history .capital-card {
+  border: 1px solid #d6e2f1;
+  border-radius: 18px;
+  box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+  background: linear-gradient(180deg, #ffffff 0%, #f8fbff 100%);
+}
+
+.capital-tab-debts .capital-summary .summary-card,
+.capital-tab-goals .capital-summary .summary-card,
+.capital-tab-history .capital-summary .summary-card {
+  border-radius: 16px;
+  border: 1px solid #dbe7f5;
+  box-shadow: 0 8px 18px rgba(37, 99, 235, 0.06);
+}
+
+.capital-tab-debts table,
+.capital-tab-goals table,
+.capital-tab-history table {
+  border-collapse: separate;
+  border-spacing: 0 8px;
+}
+
+.capital-tab-debts tbody tr,
+.capital-tab-goals tbody tr,
+.capital-tab-history tbody tr {
+  background: #f8fbff;
+}
+
+.capital-tab-debts tbody td,
+.capital-tab-goals tbody td,
+.capital-tab-history tbody td {
+  border-top: 1px solid #deebfb;
+  border-bottom: 1px solid #deebfb;
+}
+
+.capital-tab-debts tbody td:first-child,
+.capital-tab-goals tbody td:first-child,
+.capital-tab-history tbody td:first-child {
+  border-left: 1px solid #deebfb;
+  border-radius: 12px 0 0 12px;
+}
+
+.capital-tab-debts tbody td:last-child,
+.capital-tab-goals tbody td:last-child,
+.capital-tab-history tbody td:last-child {
+  border-right: 1px solid #deebfb;
+  border-radius: 0 12px 12px 0;
+}
+
+@media (max-width: 1300px) {
+  .asset-summary {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 880px) {
+  .asset-summary {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

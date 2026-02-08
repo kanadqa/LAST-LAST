@@ -125,6 +125,7 @@ const assetOperationType = document.getElementById("assetOperationType");
 const assetOperationAmount = document.getElementById("assetOperationAmount");
 const assetOperationNote = document.getElementById("assetOperationNote");
 const assetDetailsEdit = document.getElementById("assetDetailsEdit");
+const assetDetailsArchive = document.getElementById("assetDetailsArchive");
 const assetDetailsDelete = document.getElementById("assetDetailsDelete");
 const assetDetailsPrev = document.getElementById("assetDetailsPrev");
 const assetDetailsNext = document.getElementById("assetDetailsNext");
@@ -191,7 +192,9 @@ const capitalAssetsSummaryInvested = document.getElementById("capitalAssetsSumma
 const capitalAssetsSummaryProfit = document.getElementById("capitalAssetsSummaryProfit");
 const capitalAssetsSummaryPercent = document.getElementById("capitalAssetsSummaryPercent");
 const capitalAssetsSummaryWarning = document.getElementById("capitalAssetsSummaryWarning");
+const capitalAssetsExpectedProfit = document.getElementById("capitalAssetsExpectedProfit");
 const capitalAssetsNetAfterDebts = document.getElementById("capitalAssetsNetAfterDebts");
+const capitalAssetsRateInfo = document.getElementById("capitalAssetsRateInfo");
 const capitalAssetsCategoryReport = document.getElementById("capitalAssetsCategoryReport");
 const capitalAssetViewButtons = document.querySelectorAll("[data-capital-asset-view]");
 const capitalAssetPanels = document.querySelectorAll("[data-capital-asset-panel]");
@@ -1847,6 +1850,21 @@ const assetValueInBase = (asset, field) => {
   return sanitizeNumber(value, 0) * conversion.rate;
 };
 
+const assetExpectedProfitInBase = (asset) => {
+  if (asset.expectedProfit == null || asset.expectedProfit === "") {
+    return null;
+  }
+  const value = sanitizeNumber(asset.expectedProfit, 0);
+  if (asset.currency === capitalState.settings.baseCurrency) {
+    return value;
+  }
+  const conversion = capitalGetAssetConversionMeta(asset);
+  if (conversion.rate == null) {
+    return null;
+  }
+  return value * conversion.rate;
+};
+
 const getProfitMeta = (amount, invested) => {
   const profit = amount - invested;
   const percent = invested > 0 ? (profit / invested) * 100 : null;
@@ -3021,10 +3039,16 @@ const renderCapitalAssets = () => {
     capitalAssetShown.textContent = `Показано: ${sortedAssets.length}${closedCount ? ` • закрыто: ${closedCount}` : ""}`;
   }
 
+  const rateBadges = new Set();
   const totals = sortedAssets.reduce(
     (acc, asset) => {
       const amount = assetValueInBase(asset, "amount");
       const invested = assetValueInBase(asset, "invested");
+      const meta = capitalGetAssetConversionMeta(asset);
+      if (asset.currency !== capitalState.settings.baseCurrency && meta.rate != null) {
+        const sourceLabel = meta.source === "fx" ? "FX" : "курс покупки";
+        rateBadges.add(`${asset.currency}: ${meta.rate.toFixed(4)} (${sourceLabel})`);
+      }
       if (amount != null) {
         acc.amount += amount;
       }
@@ -3058,9 +3082,18 @@ const renderCapitalAssets = () => {
   if (capitalAssetsSummaryWarning) {
     capitalAssetsSummaryWarning.classList.toggle("is-hidden", totalMeta.percent != null);
   }
+  if (capitalAssetsExpectedProfit) {
+    const expectedProfit = sortedAssets.reduce((sum, asset) => sum + (assetExpectedProfitInBase(asset) ?? 0), 0);
+    capitalAssetsExpectedProfit.textContent = capitalFormatMoney(expectedProfit);
+  }
   if (capitalAssetsNetAfterDebts) {
     const debtsTotal = (capitalState.debts || []).reduce((sum, debt) => sum + (capitalToBase(debt.principal, debt.currency) ?? debt.principal ?? 0), 0);
     capitalAssetsNetAfterDebts.textContent = capitalFormatMoney(totals.amount - debtsTotal);
+  }
+  if (capitalAssetsRateInfo) {
+    capitalAssetsRateInfo.textContent = rateBadges.size
+      ? `Курс для валютных активов: ${[...rateBadges].join(" • ")}`
+      : "Курс для валютных активов: активы в базовой валюте";
   }
 
   buildFilterOptions();
@@ -3212,6 +3245,11 @@ const renderCapitalAssets = () => {
           ? "<span class='chip chip-warning'>оценка по курсу покупки</span>"
           : "";
         const missingRateChip = hasRate ? "" : "<span class='chip chip-missing'>нет текущего курса</span>";
+        const expectedProfitBase = assetExpectedProfitInBase(asset);
+        const expectedProfitLabel = expectedProfitBase == null ? "—" : capitalFormatMoney(expectedProfitBase);
+        const rateLabel = conversionMeta.rate == null
+          ? "—"
+          : `${conversionMeta.rate.toFixed(4)} ${capitalState.settings.baseCurrency} (${conversionMeta.source === "fx" ? "FX" : "курс покупки"})`;
 
         const card = document.createElement("div");
         card.className = "asset-item";
@@ -3233,6 +3271,7 @@ const renderCapitalAssets = () => {
               <div class="asset-secondary-rows">
                 <span class="asset-secondary-row"><span>Вложено${investedNativeHint}</span><strong>${investedLabel}</strong></span>
                 <span class="asset-secondary-row"><span>Прибыль</span><strong class="asset-profit ${profitMeta.profit < 0 ? "is-negative" : ""}">${profitLabel}</strong></span>
+                <span class="asset-secondary-row"><span>Ожид. чистый доход</span><strong>${expectedProfitLabel}</strong></span>
               </div>
               <span class="asset-profit-percent ${showPercentWarning ? "is-warning" : ""}">${percentLabel}</span>
             </div>
@@ -3241,7 +3280,9 @@ const renderCapitalAssets = () => {
               ${missingRateChip}
               ${rateSourceChip}
               ${showPercentWarning ? "<span class='chip chip-warning'>проверь данные</span>" : ""}
+              ${asset.maturityDate ? `<span class='chip'>до ${asset.maturityDate}</span>` : ""}
               ${asset.closedAt ? "<span class='chip'>закрыт</span>" : ""}
+              <span class="chip">курс: ${rateLabel}</span>
               <span class="asset-toggle-label">Подробнее</span>
             </div>
           </div>
@@ -3751,7 +3792,9 @@ const openAssetDetailsModal = (assetId) => {
   if (assetDetailsMeta) {
     const conversionMeta = capitalGetAssetConversionMeta(asset);
     const sourceSuffix = conversionMeta.source === "buyRate" ? " • оценка по курсу покупки" : "";
-    assetDetailsMeta.textContent = `${capitalTypeLabel(asset.type)} • ${asset.currency} • ${asset.subcategory || "Без подкатегории"}${asset.owner ? ` • ${asset.owner}` : ""}${sourceSuffix}`;
+    const rateSuffix = conversionMeta.rate == null ? "" : ` • курс: ${conversionMeta.rate.toFixed(4)} ${capitalState.settings.baseCurrency}`;
+    const maturitySuffix = asset.maturityDate ? ` • закрытие: ${asset.maturityDate}` : "";
+    assetDetailsMeta.textContent = `${capitalTypeLabel(asset.type)} • ${asset.currency} • ${asset.subcategory || "Без подкатегории"}${asset.owner ? ` • ${asset.owner}` : ""}${sourceSuffix}${rateSuffix}${maturitySuffix}`;
   }
   if (assetDetailsCurrent) {
     assetDetailsCurrent.textContent = amountBase == null ? `нет курса для ${asset.currency}` : capitalFormatMoney(amountBase);
@@ -3760,8 +3803,13 @@ const openAssetDetailsModal = (assetId) => {
     assetDetailsInvested.textContent = investedBase == null ? "нет курса" : capitalFormatMoney(investedBase);
   }
   if (assetDetailsProfit) {
-    assetDetailsProfit.textContent = amountBase == null || investedBase == null ? "—" : capitalFormatMoney(profitMeta.profit);
+    const expected = assetExpectedProfitInBase(asset);
+    const fact = amountBase == null || investedBase == null ? "—" : capitalFormatMoney(profitMeta.profit);
+    assetDetailsProfit.textContent = expected != null ? `${fact} • ожид: ${capitalFormatMoney(expected)}` : fact;
     assetDetailsProfit.classList.toggle("is-negative", profitMeta.profit < 0);
+  }
+  if (assetDetailsArchive) {
+    assetDetailsArchive.textContent = asset.closedAt ? "Открыть актив" : "Закрыть актив";
   }
   renderAssetHistory(asset);
   const ids = getAssetDetailsListIds();
@@ -3850,6 +3898,24 @@ const capitalUpdateSnapshotNote = (month, note) => {
   saveCapitalV2(capitalState);
 };
 
+const syncCapitalAssetMaturityState = () => {
+  const isDeposit = getSelectedCapitalAssetType() === "deposit";
+  const isLocked = (capitalAssetLiquidity?.value || "") === "locked";
+  if (capitalAssetExpectedProfit) {
+    capitalAssetExpectedProfit.disabled = !isDeposit;
+    if (!isDeposit) {
+      capitalAssetExpectedProfit.value = "";
+    }
+  }
+  if (capitalAssetMaturityDate) {
+    const canUseMaturity = isDeposit && isLocked;
+    capitalAssetMaturityDate.disabled = !canUseMaturity;
+    if (!canUseMaturity) {
+      capitalAssetMaturityDate.value = "";
+    }
+  }
+};
+
 const capitalResetAssetForm = () => {
   capitalAssetForm.reset();
   if (capitalAssetOwner) {
@@ -3879,6 +3945,7 @@ const capitalResetAssetForm = () => {
     capitalAssetDrawerTitle.textContent = "Новый актив";
   }
   capitalAssetCurrency?.dispatchEvent(new Event("change"));
+  syncCapitalAssetMaturityState?.();
 };
 
 const capitalFillAssetForm = (asset) => {
@@ -3919,6 +3986,7 @@ const capitalFillAssetForm = (asset) => {
     capitalAssetName.focus();
   }
   capitalAssetCurrency?.dispatchEvent(new Event("change"));
+  syncCapitalAssetMaturityState?.();
 };
 
 const capitalAddAsset = () => {
@@ -3953,7 +4021,7 @@ const capitalAddAsset = () => {
     expectedProfit: isDeposit && capitalAssetExpectedProfit.value
       ? Number.parseFloat(capitalAssetExpectedProfit.value)
       : null,
-    maturityDate: isDeposit ? capitalAssetMaturityDate.value : "",
+    maturityDate: isDeposit && capitalAssetLiquidity.value === "locked" ? capitalAssetMaturityDate.value : "",
     note: capitalAssetNote.value.trim(),
     buyRate: capitalAssetBuyRate?.value ? Number.parseFloat(capitalAssetBuyRate.value) : null,
     icon: capitalDefaultIcon(selectedType),
@@ -4966,6 +5034,10 @@ onAll(capitalTabs, "click", (event) => {
     refreshFxRate();
   }, "обновление FX");
 
+  on(capitalAssetLiquidity, "change", () => {
+    syncCapitalAssetMaturityState();
+  }, "доступность даты закрытия");
+
   on(capitalAssetCurrency, "change", () => {
     if (!capitalFxCurrency) {
       return;
@@ -5093,15 +5165,13 @@ onAll(capitalTabs, "click", (event) => {
   }, "фильтр капитала");
 
   on(capitalAssetType, "change", () => {
-    const isDeposit = getSelectedCapitalAssetType() === "deposit";
-    capitalAssetExpectedProfit.disabled = !isDeposit;
-    capitalAssetMaturityDate.disabled = !isDeposit;
-    if (!isDeposit) {
-      capitalAssetExpectedProfit.value = "";
-      capitalAssetMaturityDate.value = "";
-    }
+    syncCapitalAssetMaturityState();
     renderCapitalSubcategoryOptions();
   }, "тип актива");
+
+  on(capitalAssetLiquidity, "change", () => {
+    syncCapitalAssetMaturityState();
+  }, "доступность даты закрытия");
 
   on(capitalAssetCurrency, "change", () => {
     if (!capitalAssetBuyRate) {
@@ -5496,6 +5566,24 @@ onAll(capitalTabs, "click", (event) => {
     capitalFillAssetForm(asset);
   }, "asset details edit");
 
+  on(assetDetailsArchive, "click", () => {
+    if (!selectedAssetDetailsId) {
+      return;
+    }
+    const asset = capitalState.assets.find((item) => item.id === selectedAssetDetailsId);
+    if (!asset) {
+      return;
+    }
+    const closing = !asset.closedAt;
+    asset.closedAt = closing ? capitalNowIso() : null;
+    asset.updatedAt = capitalNowIso();
+    asset.history = [...(asset.history || []), { type: closing ? "close" : "reopen", amount: asset.amount, note: closing ? "Актив закрыт" : "Актив снова открыт", ts: capitalNowIso() }];
+    saveCapitalV2(capitalState);
+    openAssetDetailsModal(selectedAssetDetailsId);
+    renderCapitalView();
+    showToast(closing ? "Актив закрыт" : "Актив снова открыт");
+  }, "asset details archive");
+
   on(assetDetailsDelete, "click", () => {
     if (!selectedAssetDetailsId) {
       return;
@@ -5660,7 +5748,7 @@ onAll(capitalTabs, "click", (event) => {
       initializeReportRange();
       updateUndoState();
       updateTransactionFormState();
-      capitalSetTab("overview");
+      capitalSetTab("assets");
       setLayout(currentLayout);
       setView(activeView);
       showToast("Backup восстановлен");
@@ -5712,7 +5800,7 @@ const initializeApp = safeExec(async () => {
   initializeReportRange();
   updateUndoState();
   updateTransactionFormState();
-  capitalSetTab("overview");
+  capitalSetTab("assets");
   setLayout(currentLayout);
   setView(activeView);
   if (new URLSearchParams(window.location.search).get("selftest") === "1") {
