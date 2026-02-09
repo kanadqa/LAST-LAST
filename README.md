@@ -42,7 +42,31 @@
 
 ## Где хранятся данные
 
-Все данные хранятся в IndexedDB (ключи `budget.transactions.v2`, `budget.categories.v3`, `budget.capital.v2`, `budget.view.active`, `budget.layout`, `budget.capital.assets.uiState`). При необходимости выполняется миграция из старых форматов.
+Данные хранятся в IndexedDB браузера. Для изоляции по проектам используется отдельная база на каждый путь приложения: `budgetAppDb.<scope>` (scope вычисляется из `window.location.pathname`).
+
+Это означает:
+- если приложение открыто из **разных папок/URL-путей**, данные не пересекаются;
+- если путь один и тот же — используется одна и та же база.
+
+Ключи внутри базы: `budget.transactions.v2`, `budget.categories.v3`, `budget.capital.v2`, `budget.view.active`, `budget.layout`, `budget.capital.assets.uiState`.
+
+### Как перенести данные на другой компьютер
+
+1. Нажмите `Backup JSON`.
+2. Перенесите файл на другой компьютер.
+3. Откройте приложение и нажмите `Восстановить JSON`.
+
+Так переносится весь слепок: операции, категории, капитал и настройки.
+
+### Быстрый запуск на Windows (.bat)
+
+В репозитории есть `run-site.bat`.
+
+Что делает файл:
+1. Запускает локальный сервер `python -m http.server 4173` (или `py -3 -m http.server 4173`).
+2. Автоматически открывает сайт в браузере: `http://localhost:4173/index.html?view=capital`.
+
+Остановить сервер можно закрыв окно `LAST-LAST server`.
 
 ## Фото и иконки активов
 
