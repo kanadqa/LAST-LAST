@@ -714,15 +714,15 @@
           <section class="capital-tab capital-tab-debts" data-capital-tab-panel="debts">
             <section class="summary capital-summary">
               <div class="summary-card neutral">
-                <span>Средняя ставка</span>
-                <strong id="capitalWeightedApr">0%</strong>
+                <span>Я должен</span>
+                <strong id="capitalWeightedApr">0 ₽</strong>
               </div>
               <div class="summary-card expense">
-                <span>Самый дорогой долг</span>
-                <strong id="capitalHighestApr">—</strong>
+                <span>Мне должны</span>
+                <strong id="capitalHighestApr">0 ₽</strong>
               </div>
               <div class="summary-card balance">
-                <span>Месячные проценты</span>
+                <span>Сальдо</span>
                 <strong id="capitalInterestMonthly">0 ₽</strong>
               </div>
             </section>
@@ -732,17 +732,14 @@
                 <h3>Долги — новый план</h3>
                 <form id="capitalDebtForm" class="form">
                   <label>
-                    Название
-                    <input type="text" id="capitalDebtName" placeholder="Например, Кредитка" required />
+                    Имя / фамилия
+                    <input type="text" id="capitalDebtName" placeholder="Например, Иван" required />
                   </label>
                   <label>
                     Тип
                     <select id="capitalDebtType">
-                      <option value="credit_card">Кредитная карта</option>
-                      <option value="loan">Кредит</option>
-                      <option value="mortgage">Ипотека</option>
-                      <option value="personal">Личный долг</option>
-                      <option value="other">Другое</option>
+                      <option value="payable">Я должен</option>
+                      <option value="receivable">Мне должны</option>
                     </select>
                   </label>
                   <label>
@@ -750,51 +747,15 @@
                     <input type="text" id="capitalDebtCurrency" value="RUB" maxlength="3" />
                   </label>
                   <label>
-                    Остаток
+                    Сумма
                     <input type="number" id="capitalDebtPrincipal" min="0" step="0.01" required />
-                  </label>
-                  <label>
-                    APR (%)
-                    <input type="number" id="capitalDebtApr" min="0" step="0.01" />
-                  </label>
-                  <label>
-                    Минимальный платеж
-                    <input type="number" id="capitalDebtPayment" min="0" step="0.01" />
-                  </label>
-                  <label>
-                    День платежа
-                    <input type="number" id="capitalDebtDueDay" min="1" max="31" step="1" />
                   </label>
                   <label class="full">
                     Комментарий
                     <input type="text" id="capitalDebtNote" placeholder="Опционально" />
                   </label>
-                  <button type="submit" class="button secondary">Добавить долг</button>
+                  <button type="submit" class="button secondary">Сохранить</button>
                 </form>
-              </div>
-
-              <div class="capital-card">
-                <h3>План погашения</h3>
-                <div class="form compact-form">
-                  <label>
-                    Дополнительный платеж в месяц
-                    <input type="number" id="capitalExtraPayment" min="0" step="0.01" value="0" />
-                  </label>
-                  <p class="hint">Расчет приблизительный и основан на текущих ставках.</p>
-                </div>
-                <div class="table-wrapper">
-                  <table>
-                    <thead>
-                      <tr>
-                        <th>Стратегия</th>
-                        <th>Долг</th>
-                        <th>Месяцев</th>
-                        <th>Комментарий</th>
-                      </tr>
-                    </thead>
-                    <tbody id="capitalPayoffTable"></tbody>
-                  </table>
-                </div>
               </div>
             </section>
 
@@ -808,10 +769,7 @@
                         <th>Название</th>
                         <th>Тип</th>
                         <th>Валюта</th>
-                        <th>Остаток</th>
-                        <th>APR</th>
-                        <th>Мин. платеж</th>
-                        <th>День</th>
+                        <th>Сумма</th>
                         <th>Комментарий</th>
                         <th></th>
                       </tr>

@@ -734,6 +734,7 @@ const normalizeCapitalState = () => {
     updatedAt: debt.updatedAt || new Date().toISOString(),
     currency: normalizeCurrency(debt.currency, capitalState.settings.baseCurrency),
     principal: sanitizeNumber(debt.principal),
+    type: debt.type === "receivable" ? "receivable" : "payable",
     apr: debt.apr === null ? null : sanitizeNumber(debt.apr, null),
     paymentMin: debt.paymentMin === null ? null : sanitizeNumber(debt.paymentMin, null),
     ...debt,
@@ -2191,10 +2192,12 @@ const capitalLiquidityShort = (value) => ({
 }[value] || value);
 
 const capitalDebtTypeLabel = (value) => ({
-  credit_card: "Кредитная карта",
-  loan: "Кредит",
-  mortgage: "Ипотека",
-  personal: "Личный долг",
+  payable: "Я должен",
+  receivable: "Мне должны",
+  credit_card: "Я должен",
+  loan: "Я должен",
+  mortgage: "Я должен",
+  personal: "Я должен",
   other: "Другое",
 }[value] || value);
 
@@ -3247,6 +3250,7 @@ const renderCapitalAssets = () => {
         const missingRateChip = hasRate ? "" : "<span class='chip chip-missing'>нет текущего курса</span>";
         const expectedProfitBase = assetExpectedProfitInBase(asset);
         const expectedProfitLabel = expectedProfitBase == null ? "—" : capitalFormatMoney(expectedProfitBase);
+        const showForeignRate = asset.currency !== capitalState.settings.baseCurrency;
         const rateLabel = conversionMeta.rate == null
           ? "—"
           : `${conversionMeta.rate.toFixed(4)} ${capitalState.settings.baseCurrency} (${conversionMeta.source === "fx" ? "FX" : "курс покупки"})`;
@@ -3282,7 +3286,7 @@ const renderCapitalAssets = () => {
               ${showPercentWarning ? "<span class='chip chip-warning'>проверь данные</span>" : ""}
               ${asset.maturityDate ? `<span class='chip'>до ${asset.maturityDate}</span>` : ""}
               ${asset.closedAt ? "<span class='chip'>закрыт</span>" : ""}
-              <span class="chip">курс: ${rateLabel}</span>
+              ${showForeignRate ? `<span class="chip">курс: ${rateLabel}</span>` : ""}
               <span class="asset-toggle-label">Подробнее</span>
             </div>
           </div>
@@ -3300,33 +3304,21 @@ const renderCapitalAssets = () => {
 };
 
 const debtMetrics = () => {
-  const debts = capitalState.debts;
-  if (!debts.length) {
-    return { weightedApr: 0, highestAprLabel: "—", interestMonthly: 0 };
-  }
-  const totalPrincipal = debts.reduce((sum, item) => sum + item.principal, 0);
-  const weighted = debts.reduce((sum, item) => {
-    const rate = item.apr ?? 0;
-    return sum + item.principal * rate;
-  }, 0);
-  const weightedApr = totalPrincipal ? weighted / totalPrincipal : 0;
-  const highest = debts.reduce((prev, curr) => ((curr.apr ?? 0) > (prev.apr ?? 0) ? curr : prev), debts[0]);
-  const interestMonthly = debts.reduce((sum, item) => {
-    const rate = item.apr ?? 0;
-    return sum + (item.principal * rate) / 100 / 12;
-  }, 0);
-  return {
-    weightedApr,
-    highestAprLabel: highest ? `${highest.name} (${highest.apr ?? 0}%)` : "—",
-    interestMonthly,
-  };
+  const debts = capitalState.debts || [];
+  const payable = debts
+    .filter((item) => item.type !== "receivable")
+    .reduce((sum, item) => sum + (capitalToBase(item.principal, item.currency) ?? item.principal ?? 0), 0);
+  const receivable = debts
+    .filter((item) => item.type === "receivable")
+    .reduce((sum, item) => sum + (capitalToBase(item.principal, item.currency) ?? item.principal ?? 0), 0);
+  return { payable, receivable, balance: receivable - payable };
 };
 
 const renderCapitalDebts = () => {
   capitalDebtsTable.innerHTML = "";
   if (!capitalState.debts.length) {
     const row = document.createElement("tr");
-    row.innerHTML = "<td colspan='9' class='hint'>Добавьте первый долг.</td>";
+    row.innerHTML = "<td colspan='6' class='hint'>Добавьте первую запись.</td>";
     capitalDebtsTable.appendChild(row);
   } else {
     capitalState.debts.forEach((item) => {
@@ -3336,16 +3328,13 @@ const renderCapitalDebts = () => {
         <td><input type="text" value="${item.name}" data-field="name" /></td>
         <td>
           <select data-field="type">
-            ${["credit_card", "loan", "mortgage", "personal", "other"]
-              .map((value) => `<option value="${value}" ${value === item.type ? "selected" : ""}>${capitalDebtTypeLabel(value)}</option>`)
+            ${["payable", "receivable"]
+              .map((value) => `<option value="${value}" ${value === (item.type || "payable") ? "selected" : ""}>${capitalDebtTypeLabel(value)}</option>`)
               .join("")}
           </select>
         </td>
         <td><input type="text" value="${item.currency}" data-field="currency" maxlength="3" /></td>
         <td><input type="number" value="${item.principal}" data-field="principal" step="0.01" /></td>
-        <td><input type="number" value="${item.apr ?? ""}" data-field="apr" step="0.01" /></td>
-        <td><input type="number" value="${item.paymentMin ?? ""}" data-field="paymentMin" step="0.01" /></td>
-        <td><input type="number" value="${item.dueDay ?? ""}" data-field="dueDay" step="1" min="1" max="31" /></td>
         <td><input type="text" value="${item.note || ""}" data-field="note" /></td>
         <td><button class="button secondary" data-debt-delete="${item.id}">Удалить</button></td>
       `;
@@ -3354,9 +3343,9 @@ const renderCapitalDebts = () => {
   }
 
   const metrics = debtMetrics();
-  capitalWeightedApr.textContent = `${metrics.weightedApr.toFixed(2)}%`;
-  capitalHighestApr.textContent = metrics.highestAprLabel;
-  capitalInterestMonthly.textContent = capitalFormatMoney(metrics.interestMonthly);
+  if (capitalWeightedApr) capitalWeightedApr.textContent = capitalFormatMoney(metrics.payable);
+  if (capitalHighestApr) capitalHighestApr.textContent = capitalFormatMoney(metrics.receivable);
+  if (capitalInterestMonthly) capitalInterestMonthly.textContent = capitalFormatMoney(metrics.balance);
 };
 
 const estimatePayoffMonths = (principal, apr, payment) => {
@@ -3397,22 +3386,10 @@ const buildPayoffPlan = (strategy) => {
 };
 
 const renderCapitalPayoff = () => {
-  const plans = [...buildPayoffPlan("avalanche"), ...buildPayoffPlan("snowball")];
-  capitalPayoffTable.innerHTML = "";
-  if (!plans.length) {
-    capitalPayoffTable.innerHTML = "<tr><td colspan='4' class='hint'>Добавьте долги.</td></tr>";
+  if (!capitalPayoffTable) {
     return;
   }
-  plans.forEach((plan) => {
-    const row = document.createElement("tr");
-    row.innerHTML = `
-      <td>${plan.strategy === "avalanche" ? "Лавина" : "Снежный ком"}</td>
-      <td>${plan.name}</td>
-      <td>${plan.months}</td>
-      <td>${plan.note}</td>
-    `;
-    capitalPayoffTable.appendChild(row);
-  });
+  capitalPayoffTable.innerHTML = "";
 };
 
 const goalProgress = (goal) => {
@@ -3873,7 +3850,7 @@ const capitalUpdateDebt = (id, field, value) => {
   if (!debt) {
     return;
   }
-  const numericFields = ["principal", "apr", "paymentMin", "dueDay"];
+  const numericFields = ["principal"];
   if (field === "currency") {
     debt[field] = value.trim().toUpperCase();
   } else {
@@ -4075,12 +4052,12 @@ const capitalAddDebt = () => {
   capitalState.debts.push({
     id: capitalGenerateId("debt"),
     name,
-    type: capitalDebtType.value,
+    type: capitalDebtType.value || "payable",
     currency: capitalDebtCurrency.value.trim().toUpperCase() || capitalState.settings.baseCurrency,
     principal,
-    apr: capitalDebtApr.value ? Number.parseFloat(capitalDebtApr.value) : null,
-    paymentMin: capitalDebtPayment.value ? Number.parseFloat(capitalDebtPayment.value) : null,
-    dueDay: capitalDebtDueDay.value ? Number.parseInt(capitalDebtDueDay.value, 10) : null,
+    apr: null,
+    paymentMin: null,
+    dueDay: null,
     note: capitalDebtNote.value.trim(),
     updatedAt: capitalNowIso(),
   });
@@ -5635,9 +5612,7 @@ onAll(capitalTabs, "click", (event) => {
     renderCapitalView();
   }, "удаление долга");
 
-  on(capitalExtraPayment, "input", () => {
-    renderCapitalPayoff();
-  }, "доп платеж");
+
 
   on(capitalGoalForm, "submit", (event) => {
     event.preventDefault();
