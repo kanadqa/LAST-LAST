@@ -279,6 +279,21 @@ window.addEventListener("unhandledrejection", (event) => {
   showError("Произошла ошибка при выполнении операции. Проверьте данные.");
 });
 
+const capitalFormatCompactMoney = (value) => {
+  const amount = sanitizeNumber(value, 0);
+  const abs = Math.abs(amount);
+  if (abs >= 1_000_000_000) {
+    return `${(amount / 1_000_000_000).toFixed(2)} млрд ₽`;
+  }
+  if (abs >= 1_000_000) {
+    return `${(amount / 1_000_000).toFixed(2)} млн ₽`;
+  }
+  if (abs >= 1_000) {
+    return `${(amount / 1_000).toFixed(1)} тыс ₽`;
+  }
+  return capitalFormatMoney(amount);
+};
+
 const currencyFormatter = new Intl.NumberFormat("ru-RU", {
   style: "currency",
   currency: "RUB",
@@ -3064,13 +3079,16 @@ const renderCapitalAssets = () => {
   );
   const totalMeta = getProfitMeta(totals.amount, totals.invested);
   if (capitalAssetsSummaryTotal) {
-    capitalAssetsSummaryTotal.textContent = capitalFormatMoney(totals.amount);
+    capitalAssetsSummaryTotal.textContent = capitalFormatCompactMoney(totals.amount);
+    capitalAssetsSummaryTotal.title = capitalFormatMoney(totals.amount);
   }
   if (capitalAssetsSummaryInvested) {
-    capitalAssetsSummaryInvested.textContent = capitalFormatMoney(totals.invested);
+    capitalAssetsSummaryInvested.textContent = capitalFormatCompactMoney(totals.invested);
+    capitalAssetsSummaryInvested.title = capitalFormatMoney(totals.invested);
   }
   if (capitalAssetsSummaryProfit) {
-    capitalAssetsSummaryProfit.textContent = capitalFormatMoney(totalMeta.profit);
+    capitalAssetsSummaryProfit.textContent = capitalFormatCompactMoney(totalMeta.profit);
+    capitalAssetsSummaryProfit.title = capitalFormatMoney(totalMeta.profit);
     capitalAssetsSummaryProfit.classList.toggle("is-negative", totalMeta.profit < 0);
   }
   if (capitalAssetsSummaryPercent) {
@@ -3087,11 +3105,14 @@ const renderCapitalAssets = () => {
   }
   if (capitalAssetsExpectedProfit) {
     const expectedProfit = sortedAssets.reduce((sum, asset) => sum + (assetExpectedProfitInBase(asset) ?? 0), 0);
-    capitalAssetsExpectedProfit.textContent = capitalFormatMoney(expectedProfit);
+    capitalAssetsExpectedProfit.textContent = capitalFormatCompactMoney(expectedProfit);
+    capitalAssetsExpectedProfit.title = capitalFormatMoney(expectedProfit);
   }
   if (capitalAssetsNetAfterDebts) {
     const debtsTotal = (capitalState.debts || []).reduce((sum, debt) => sum + (capitalToBase(debt.principal, debt.currency) ?? debt.principal ?? 0), 0);
-    capitalAssetsNetAfterDebts.textContent = capitalFormatMoney(totals.amount - debtsTotal);
+    const netAfterDebts = totals.amount - debtsTotal;
+    capitalAssetsNetAfterDebts.textContent = capitalFormatCompactMoney(netAfterDebts);
+    capitalAssetsNetAfterDebts.title = capitalFormatMoney(netAfterDebts);
   }
   if (capitalAssetsRateInfo) {
     capitalAssetsRateInfo.textContent = rateBadges.size
@@ -3343,47 +3364,20 @@ const renderCapitalDebts = () => {
   }
 
   const metrics = debtMetrics();
-  if (capitalWeightedApr) capitalWeightedApr.textContent = capitalFormatMoney(metrics.payable);
-  if (capitalHighestApr) capitalHighestApr.textContent = capitalFormatMoney(metrics.receivable);
-  if (capitalInterestMonthly) capitalInterestMonthly.textContent = capitalFormatMoney(metrics.balance);
-};
-
-const estimatePayoffMonths = (principal, apr, payment) => {
-  let balance = principal;
-  let months = 0;
-  while (balance > 0 && months < 600) {
-    const interest = (balance * (apr ?? 0)) / 100 / 12;
-    const applied = Math.max(payment - interest, 0);
-    if (applied === 0) {
-      return null;
-    }
-    balance = Math.max(balance - applied, 0);
-    months += 1;
+  if (capitalWeightedApr) {
+    capitalWeightedApr.textContent = capitalFormatCompactMoney(metrics.payable);
+    capitalWeightedApr.title = capitalFormatMoney(metrics.payable);
   }
-  return months;
+  if (capitalHighestApr) {
+    capitalHighestApr.textContent = capitalFormatCompactMoney(metrics.receivable);
+    capitalHighestApr.title = capitalFormatMoney(metrics.receivable);
+  }
+  if (capitalInterestMonthly) {
+    capitalInterestMonthly.textContent = capitalFormatCompactMoney(metrics.balance);
+    capitalInterestMonthly.title = capitalFormatMoney(metrics.balance);
+  }
 };
 
-const buildPayoffPlan = (strategy) => {
-  const extra = Number.parseFloat(capitalExtraPayment.value) || 0;
-  const debts = capitalState.debts
-    .map((item) => ({ ...item }))
-    .sort((a, b) => {
-      if (strategy === "avalanche") {
-        return (b.apr ?? 0) - (a.apr ?? 0);
-      }
-      return a.principal - b.principal;
-    });
-  return debts.map((item, index) => {
-    const payment = (item.paymentMin ?? 0) + (index === 0 ? extra : 0);
-    const months = estimatePayoffMonths(item.principal, item.apr ?? 0, payment);
-    return {
-      strategy,
-      name: item.name,
-      months: months == null ? "∞" : months,
-      note: index === 0 && extra > 0 ? "С доп. платежом" : "Мин. платеж",
-    };
-  });
-};
 
 const renderCapitalPayoff = () => {
   if (!capitalPayoffTable) {
